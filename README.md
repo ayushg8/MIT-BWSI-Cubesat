@@ -8,97 +8,110 @@
 
 # MuraltZ CubeSat: flight software
 
-A satellite cannot photograph everything and cannot send everything home, so it has to choose. This is the Raspberry Pi flight software I wrote for a CubeSat prototype at the MIT Beaver Works Summer Institute. The companion ground station is in [MIT-Cubesat-Ground-Control-Station](https://github.com/ayushg8/MIT-Cubesat-Ground-Control-Station).
+Raspberry Pi flight software for the MuraltZ CubeSat prototype, built at the MIT Beaver Works Summer Institute. The loop points the camera, shoots only when the IMU says it is steady and facing the ground, scores each photo on board, and sends the best ones home within a fixed byte budget. The companion ground station is in [MIT-Cubesat-Ground-Control-Station](https://github.com/ayushg8/MIT-Cubesat-Ground-Control-Station).
 
 **[Open the interactive site](https://ayushg8.github.io/MIT-BWSI-Cubesat/)** to click through the logic yourself.
 
 ### What it does
 
-- **Points itself.** It only takes a photo when the camera faces the ground and is holding still.
-- **Judges its own photos.** Every shot is checked on board for blur, brightness and shake, and bad ones are thrown away.
-- **Picks what to send home.** The link is slow on purpose, so the best photos go first and the rest wait for the next pass.
+- It only takes a photo when the camera faces the ground and is holding still.
+- Every shot is checked on board for blur, brightness and shake, and bad ones are thrown away.
+- The best photos go first, and the rest wait for the next pass.
 
 <p align="center"><img src="docs/media/demo.gif" alt="Recording of the interactive site: the hero, an accepted and a rejected capture with per-check results, and the downlink queue draining" width="880"></p>
 
 *A recording of the [interactive site](https://ayushg8.github.io/MIT-BWSI-Cubesat/), which replays the flight logic with the same thresholds as `config.py`. It is not hardware footage.*
 
-## Quality gate on real captures
-
-Each photo is scored on blur, brightness and shake. The blur score is the Laplacian variance, a number that gets bigger the sharper the edges in the picture are. The gate wants at least 20.
-
-The flight camera shoots 640 x 480, so I shrank the 16 test photos in `Images/` to that, saved them the way the camera code does, and ran the repo's own `QualityGate.score_image` on them. 10 of 16 pass. All 6 rejects are for blur.
-
-<table>
-<tr>
-<td align="center" width="25%"><img src="docs/media/captures/AyushG_193548.jpg" width="200" alt="accepted: sharp, variance 360.26 vs 20 needed"><br><sub>accepted: sharp, variance 360.26 vs 20 needed</sub></td>
-<td align="center" width="25%"><img src="docs/media/captures/AyushG_054319.jpg" width="200" alt="accepted: sharp, variance 75.78 vs 20 needed"><br><sub>accepted: sharp, variance 75.78 vs 20 needed</sub></td>
-<td align="center" width="25%"><img src="docs/media/captures/AyushG_194135.jpg" width="200" alt="rejected: too blurry, variance 13.26 below 20"><br><sub>rejected: too blurry, variance 13.26 below 20</sub></td>
-<td align="center" width="25%"><img src="docs/media/captures/AyushG_055240.jpg" width="200" alt="rejected: too blurry, variance 5.74 below 20"><br><sub>rejected: too blurry, variance 5.74 below 20</sub></td>
-</tr>
-</table>
-
-<details>
-<summary>All 16 captures</summary>
-
-<table>
-<tr>
-<td align="center"><img src="docs/media/captures/AyushG_054319.jpg" width="170" alt="AyushG_054319.jpg"><br><sub><code>054319</code><br>accepted<br>variance 75.78</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_054605.jpg" width="170" alt="AyushG_054605.jpg"><br><sub><code>054605</code><br>rejected: blur<br>variance 0.54</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_055150.jpg" width="170" alt="AyushG_055150.jpg"><br><sub><code>055150</code><br>rejected: blur<br>variance 0.84</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_055234.jpg" width="170" alt="AyushG_055234.jpg"><br><sub><code>055234</code><br>rejected: blur<br>variance 1.1</sub></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/media/captures/AyushG_055240.jpg" width="170" alt="AyushG_055240.jpg"><br><sub><code>055240</code><br>rejected: blur<br>variance 5.74</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_193122.jpg" width="170" alt="AyushG_193122.jpg"><br><sub><code>193122</code><br>accepted<br>variance 56.87</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_193244.jpg" width="170" alt="AyushG_193244.jpg"><br><sub><code>193244</code><br>rejected: blur<br>variance 6.96</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_193548.jpg" width="170" alt="AyushG_193548.jpg"><br><sub><code>193548</code><br>accepted<br>variance 360.26</sub></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/media/captures/AyushG_193553.jpg" width="170" alt="AyushG_193553.jpg"><br><sub><code>193553</code><br>accepted<br>variance 297.94</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_193558.jpg" width="170" alt="AyushG_193558.jpg"><br><sub><code>193558</code><br>accepted<br>variance 124.45</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_193603.jpg" width="170" alt="AyushG_193603.jpg"><br><sub><code>193603</code><br>accepted<br>variance 20.91</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_194130.jpg" width="170" alt="AyushG_194130.jpg"><br><sub><code>194130</code><br>accepted<br>variance 189.11</sub></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/media/captures/AyushG_194135.jpg" width="170" alt="AyushG_194135.jpg"><br><sub><code>194135</code><br>rejected: blur<br>variance 13.26</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_194140.jpg" width="170" alt="AyushG_194140.jpg"><br><sub><code>194140</code><br>accepted<br>variance 79.09</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_194145.jpg" width="170" alt="AyushG_194145.jpg"><br><sub><code>194145</code><br>accepted<br>variance 187.53</sub></td>
-<td align="center"><img src="docs/media/captures/AyushG_194150.jpg" width="170" alt="AyushG_194150.jpg"><br><sub><code>194150</code><br>accepted<br>variance 22.41</sub></td>
-</tr>
-</table>
-
-Gyro was set to 0.0 and novelty to 1.0 since no IMU or coverage grid was attached. Per-image numbers at both resolutions are in [`docs/data/captures.json`](docs/data/captures.json).
-
-</details>
-
-Scored at the full 4608 x 2592 instead, the same gate passes only 1 of 16, because variance shifts with resolution. That is why the 20 threshold is still a placeholder. The [site](https://ayushg8.github.io/MIT-BWSI-Cubesat/#gate) shows the per-check breakdown for each photo at both sizes.
-
 ## How it works
 
-The flight loop is a state machine stepped by an operator (`cubesat_flight/main.py`). After boot it waits for a pass command, then runs IMAGING, IDLE and DOWNLINK and goes back to waiting.
+<p align="center"><img src="docs/media/figures/state-machine.svg" alt="Animated diagram: the active state steps through BOOT, WAITING, IMAGING, IDLE and DOWNLINK, then returns to WAITING" width="880"></p>
 
-```mermaid
-stateDiagram-v2
-    [*] --> BOOT
-    BOOT --> WAITING: self-test ok
-    BOOT --> SAFE_MODE: IMU or camera fail
-    WAITING --> IMAGING: start_pass
-    IMAGING --> IDLE: window over
-    IMAGING --> SAFE_MODE: CPU above 80 C
-    IDLE --> DOWNLINK: queue built
-    DOWNLINK --> WAITING: window over
-    SAFE_MODE --> WAITING: resume_normal
-```
+The flight loop is a state machine stepped by an operator (`cubesat_flight/main.py`). After boot it waits for a pass command, then runs IMAGING, IDLE and DOWNLINK and goes back to waiting. Fig. 1 is an animation, so the active state moves by itself.
+
+<details>
+<summary>What each state does</summary>
 
 **BOOT** checks the IMU, takes a test photo that must decode as a JPEG, checks disk space and tries to reach the ground station. If the ground station is missing, the spacecraft logs autonomous mode and carries on.
 
-**IMAGING** (`states/imaging.py`) reads the IMU every 3 seconds and shoots only when two things are true. First, nadir lock: nadir is the direction straight down at the ground, and the camera must point within 45 degrees of it. Once locked, it stays locked until the angle passes 55 degrees, which stops the camera flickering on and off at the edge. Second, the gyro must read under 1.0 rad/s. Each photo then goes through the quality gate (`processing/quality.py`), which checks blur, exposure, motion and novelty. A photo that survives gets a priority tier from how new its spot on an 8 x 8 coverage grid is, and one that fails gets a logged reason.
+**IMAGING** (`states/imaging.py`) reads the IMU every 3 seconds and shoots only when the camera is near nadir and the gyro reads under 1.0 rad/s. Each photo goes through the quality gate, and a photo that survives gets a priority tier from how new its spot on an 8 x 8 coverage grid is.
 
 **IDLE** (`states/idle.py`) builds the send queue sorted by tier and score. Priority runs P1, P2, P3 from most to least important, and a P2 photo that has waited more than 2 passes drops to P3. IDLE also deletes the oldest P3 photos when storage fills up and applies any commands from the ground.
 
-**DOWNLINK** (`states/downlink.py`, `comms/transfer.py`) sends telemetry, then photos highest priority first in 1,200-byte chunks with a real one-second sleep after each, until the 72,000-byte budget or the 60-second window runs out. Each photo carries an MD5 checksum; the ground station ACKs or NACKs it, and after three NACKs the photo is marked corrupt.
+**DOWNLINK** (`states/downlink.py`, `comms/transfer.py`) sends telemetry, then photos highest priority first, until the byte budget or the time window runs out.
 
 Three background pieces keep it alive. A watchdog thread restarts the process if the main loop stalls for 30 seconds. Thermal monitoring doubles the capture interval at 70 C and drops to safe mode at 80 C. A command listener takes validated JSON commands from the ground station over TCP. More in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+
+</details>
+
+## Pointing: nadir lock
+
+<p align="center"><img src="docs/media/figures/fig-nadir-hysteresis.png" alt="Fig. 2: lock state against angle from nadir; descending the lock engages at 44 degrees, returning it holds until 56" width="880"></p>
+
+Nadir is straight down at the ground. The camera locks when it points within 45 degrees of nadir and lets go only past 55, so a camera hovering near 50 does not flicker on and off. Fig. 2 feeds a 1 degree sweep through the real `_update_nadir_lock`.
+
+## Quality gate on real captures
+
+<p align="center"><img src="docs/media/figures/fig-contact-sheet.png" alt="Fig. 3: contact sheet of all 16 captures, each stamped ACCEPT or REJECT with its blur variance" width="880"></p>
+
+Each photo is scored on blur, brightness and shake. The blur score is the Laplacian variance, which gets bigger the sharper the edges are, and the gate wants at least 20. I shrank the 16 photos in `Images/` to the flight camera's 640 x 480, saved them the way the camera code does, and ran the repo's own `QualityGate.score_image`. 10 of 16 pass. The 6 rejects are all logged at the blur check, which runs first; 3 of them are near-black frames (mean brightness under 7) that would also fail the exposure minimum of 15.
+
+<p align="center"><img src="docs/media/figures/fig-gate-variance.png" alt="Fig. 4: blur variance of each capture at 640 x 480 and at full resolution against the threshold of 20" width="880"></p>
+
+The faint diamonds in Fig. 4 are the same photos at the full 4608 x 2592. Scored there, the gate passes only 1 of 16, because variance shifts with resolution. That is why 20 is still a placeholder. The [site](https://ayushg8.github.io/MIT-BWSI-Cubesat/#gate) shows the per-check breakdown for each photo.
+
+<p align="center"><img src="docs/media/figures/terminal-gate-and-tests.gif" alt="Terminal recording: a script prints ACCEPT or REJECT for each of the 16 captures, then the processing unit tests run and pass" width="880"></p>
+
+The terminal output above is a real run of `docs/figures/gate_report.py` and `python -m unittest -v test_processing.py`, replayed as frames.
+
+<details>
+<summary>How the gate decides</summary>
+
+```mermaid
+flowchart TD
+    A[JPEG] --> B{readable?}
+    B -- no --> R[reject]
+    B -- yes --> C{blur variance >= 20?}
+    C -- no --> R
+    C -- yes --> D{mean brightness 15 to 240?}
+    D -- no --> R
+    D -- yes --> E{gyro rate < 1.0 rad/s?}
+    E -- no --> R
+    E -- yes --> F["score = 0.3 blur + 0.25 exposure + 0.2 motion + 0.25 novelty"]
+```
+
+Gyro was set to 0.0 and novelty to 1.0 for these runs, since no IMU or coverage grid was attached. Per-image numbers at both resolutions are in [`docs/data/captures.json`](docs/data/captures.json).
+
+</details>
+
+## Downlink
+
+<p align="center"><img src="docs/media/figures/fig-downlink-timeline.png" alt="Fig. 5: cumulative bytes delivered over one 60 second window; two photos fit, a third would pass the 72,000 byte budget" width="880"></p>
+
+The link moves 1,200 bytes per second for a 60 second window, so a pass carries 72,000 bytes at most. Fig. 5 runs the real `downlink()` loop against a stub socket on a virtual clock, with the accepted captures queued best score first. Two photos go out, and the third would cross the budget, so it waits for the next pass.
+
+```mermaid
+sequenceDiagram
+    participant S as CubeSat (transfer.py)
+    participant G as Ground station
+    S->>G: JSON header: type, filename, file_size, md5, metadata
+    loop 1,200 byte chunks
+        S->>G: chunk
+        Note over S: sleep 1 s
+    end
+    alt checksum matches
+        G-->>S: ACK
+        Note over S: mark sent
+    else checksum fails
+        G-->>S: NACK
+        Note over S: retry, up to 3 NACKs, then mark corrupt and skip
+    end
+```
+
+## Offline analysis layer
+
+<p align="center"><img src="docs/media/figures/fig-offline-analysis.png" alt="Fig. 6: a synthetic scene, its pixel segmentation, and an A* route through the resulting cost grid" width="880"></p>
+
+Terrain segmentation, the cost grid and A* route planning live in `processing/` and run in the tests, but the flight loop does not call them. Fig. 6 uses a synthetic scene because the indoor captures have no terrain to segment; the detection boxes are placed by hand.
 
 ## Tech
 
@@ -107,7 +120,8 @@ Three background pieces keep it alive. A watchdog thread restarts the process if
 - Pi Camera Module 3 through `picamera2`
 - OpenCV and NumPy for the quality gate and offline analysis, Flask for the inspection dashboard
 
-## Repo layout
+<details>
+<summary>Repo layout</summary>
 
 ```
 .
@@ -127,10 +141,13 @@ Three background pieces keep it alive. A watchdog thread restarts the process if
 │   ├── index.html         interactive site (GitHub Pages)
 │   ├── ARCHITECTURE.md    full design write-up
 │   ├── data/captures.json quality-gate results for Images/
-│   └── media/             banner, demo GIF, capture thumbnails
+│   ├── figures/           scripts that generate every figure above
+│   └── media/             banner, demo GIF, figures, capture thumbnails
 ├── Images/                16 raw test captures
 └── .github/workflows/     CI
 ```
+
+</details>
 
 ## Running it
 
@@ -153,16 +170,21 @@ export CUBESAT_DATA_ROOT="$(mktemp -d)"
 python -m unittest -v test_processing.py
 ```
 
+To rebuild the figures (needs Python 3.11 or newer and `pip install matplotlib`):
+
+```bash
+python docs/figures/make_figures.py
+```
+
 `GROUND_STATION_IP` and the data root can be overridden through environment variables (see `.env.example`).
 
 ## Limits
 
-This is an educational prototype, and the numbers in this README are designed behavior from `config.py`, not flight results.
+This is an educational prototype, and the numbers here are designed behavior from `config.py`, not flight results.
 
-- The blur threshold of 20 is a placeholder that has not been calibrated on the real imaging surface. `config.py` says so too.
+- The blur threshold of 20 is a placeholder that has not been calibrated on the real imaging surface.
 - There is no magnetometer, so pitch and roll are tracked but yaw is not.
-- Wi-Fi stands in for a flight radio. The 1,200 byte/s throttle matches the rate of a 9600 baud UHF link.
-- Terrain segmentation and route planning exist in the repo and run in the tests, but the flight loop does not use them.
+- Wi-Fi stands in for a flight radio. The 1,200 byte/s throttle matches a 9600 baud UHF link.
 - Camera height and power-draw values in `config.py` are still 0.0 placeholders.
 
 | Setting | Value |

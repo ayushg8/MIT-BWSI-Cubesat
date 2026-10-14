@@ -3,121 +3,189 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MuraltZ CubeSat | Flight software, interactive</title>
-<meta name="description" content="Flight software for a high-school CubeSat built at MIT Beaver Works Summer Institute. Explore the state machine, the image quality gate, the imaging gate and the throttled downlink.">
-<meta property="og:title" content="MuraltZ CubeSat flight software">
-<meta property="og:description" content="State machine, quality gate, imaging gate and throttled downlink from a real Raspberry Pi CubeSat prototype.">
+<title>MuraltZ CubeSat flight software: technical report</title>
+<meta name="description" content="Technical report and interactive figures for the flight software of a high-school CubeSat prototype built at MIT Beaver Works Summer Institute: state machine, image quality gate, imaging gate and throttled downlink.">
+<meta property="og:title" content="MuraltZ CubeSat flight software: technical report">
+<meta property="og:description" content="State machine, quality gate, imaging gate and throttled downlink from a Raspberry Pi CubeSat prototype.">
 <meta property="og:image" content="media/banner.png">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0607'/%3E%3Ccircle cx='16' cy='16' r='9' fill='none' stroke='%23f3ecea' stroke-width='2'/%3E%3Ccircle cx='25' cy='16' r='3' fill='%23ff5a69'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F6F4EF'/%3E%3Crect x='5' y='5' width='22' height='22' fill='none' stroke='%2316150F' stroke-width='2'/%3E%3Crect x='19' y='13' width='6' height='6' fill='%23D9480F'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-<header class="bar">
-  <div class="wrap">
-    <span class="id">MURALTZ-01</span>
-    <nav aria-label="Sections">
-      <a href="#states">State machine</a>
-      <a href="#gate">Quality gate</a>
-      <a href="#imaging">Imaging gate</a>
-      <a href="#downlink">Downlink</a>
-      <a href="#architecture">Architecture</a>
-      <a href="#limits">Limits</a>
-    </nav>
-  </div>
+<div class="page">
+<header class="dochead">
+  <div class="docmeta"><span>MURALTZ-01</span><span>Flight software report</span><span>Rev. 2026-10-13</span></div>
+  <h1>MuraltZ CubeSat flight software</h1>
+  <p class="subtitle">Gated imaging, on-board quality scoring and a throttled downlink on a Raspberry Pi 4</p>
+  <dl class="titleblock">
+    <div><dt>Author</dt><dd>Ayush Garg</dd></div>
+    <div><dt>Program</dt><dd>MIT Beaver Works Summer Institute, CubeSat (2025&ndash;2026)</dd></div>
+    <div><dt>Commit history</dt><dd>Jan 6 &ndash; Oct 13, 2026</dd></div>
+    <div><dt>Repositories</dt><dd><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat">Flight software</a>, <a href="https://github.com/ayushg8/MIT-Cubesat-Ground-Control-Station">Ground station</a></dd></div>
+  </dl>
+  <p class="status"><b>Status.</b> Educational prototype with no flight results. Panels A&ndash;D are JavaScript visualizations of the flight logic using thresholds from <span class="mono">config.py</span>, not hardware footage. The 16 captures are real test shots from the rig.</p>
 </header>
 
-<main>
-<section class="hero">
-  <div class="wrap hero-grid">
-    <div class="hero-copy">
-      <p class="eyebrow">MIT Beaver Works Summer Institute / CubeSat flight software</p>
-      <h1>MuraltZ</h1>
-      <p class="lede">A CubeSat that decides what is worth sending home.</p>
-      <p class="body">Raspberry Pi flight software that only takes a picture when the spacecraft is pointed at the ground and holding still, scores every frame for quality on board, and downlinks the best ones first over a link slow enough that choosing is mandatory. Everything below runs the same thresholds as the real code.</p>
-      <div class="links">
-        <a class="btn primary" href="#states">Explore the flight logic</a>
-        <a class="btn" href="https://github.com/ayushg8/MIT-BWSI-Cubesat">Flight software repo</a>
-        <a class="btn" href="https://github.com/ayushg8/MIT-Cubesat-Ground-Control-Station">Ground station repo</a>
-      </div>
-    </div>
-    <aside class="hero-aside" aria-hidden="true">
-      <svg class="orbit" viewBox="0 0 560 300" fill="none" stroke="#43343a" stroke-width="1.2">
-        <ellipse cx="280" cy="150" rx="260" ry="84" transform="rotate(-10 280 150)"/>
-        <ellipse cx="280" cy="150" rx="190" ry="56" transform="rotate(-10 280 150)" stroke-dasharray="3 6"/>
-        <circle cx="280" cy="150" r="30" stroke="#b9aaa8"/>
-        <circle id="sat" cx="540" cy="104" r="6" fill="#ff5a69" stroke="none"/>
-      </svg>
-      <div class="tlm">
-        <div class="tlm-head"><span>STATE CYCLE</span><span>from config.py</span></div>
-        <div class="tlm-state" id="tlm-state">IMAGING</div>
-        <ul class="tlm-rows" id="tlm-rows"></ul>
-        <div class="tlm-track" id="tlm-track"></div>
-      </div>
-    </aside>
-  </div>
-  <div class="wrap">
-    <ul class="hero-facts">
-      <li><b>5</b><span>flight states</span></li>
-      <li><b>1,200 B/s</b><span>throttled link</span></li>
-      <li><b>72,000 B</b><span>per-pass budget</span></li>
-      <li><b id="hero-pass">10 / 16</b><span>captures pass at 640 x 480</span></li>
-    </ul>
-  </div>
+<div class="layout">
+<nav class="toc" aria-label="Contents">
+  <p class="toclabel">Contents</p>
+  <ol>
+    <li><a href="#overview"><i>1</i>Overview</a></li>
+    <li><a href="#logic"><i>2</i>Flight logic</a>
+      <ol>
+        <li><a href="#states"><i>2.1</i>State machine</a></li>
+        <li><a href="#gate"><i>2.2</i>Quality gate</a></li>
+        <li><a href="#imaging"><i>2.3</i>Imaging gate</a></li>
+        <li><a href="#downlink"><i>2.4</i>Downlink</a></li>
+      </ol></li>
+    <li><a href="#systems"><i>3</i>Supporting systems</a></li>
+    <li><a href="#limits"><i>4</i>Limits</a></li>
+  </ol>
+</nav>
+
+<main id="main">
+
+<section id="overview">
+  <h2><i>1</i>Overview</h2>
+  <p>The software runs a five-state loop that the operator steps through. It captures only when the spacecraft is pointed at the ground and holding still, scores each frame on board, and downlinks the best frames first over a link slow enough that choosing is mandatory.</p>
+
+  <table class="spec">
+    <caption>Table 1. Design numbers from <span class="mono">config.py</span></caption>
+    <tbody>
+      <tr><th scope="row">Flight states</th><td class="num">5</td><td>BOOT, WAITING, IMAGING, IDLE, DOWNLINK; SAFE MODE sits outside the loop</td></tr>
+      <tr><th scope="row">Link rate</th><td class="num">1,200 B/s</td><td>matches a 9600 baud radio</td></tr>
+      <tr><th scope="row">Pass budget</th><td class="num">72,000 B</td><td>one 60 s downlink window</td></tr>
+      <tr><th scope="row">Captures accepted</th><td class="num hot" id="hero-pass">10 / 16</td><td>at 640 &times; 480, scored by the repo's own gate</td></tr>
+    </tbody>
+  </table>
+
+  <h3><i>1.1</i>Hardware</h3>
+  <figure id="hw">
+    <svg class="hw wide" viewBox="0 0 880 250" role="img" aria-labelledby="hw-t">
+      <title id="hw-t">Block diagram: Raspberry Pi 4 connected to Camera Module 3 over CSI and LSM6DSO32 IMU over I2C, with a Wi-Fi link to the ground station</title>
+      <g class="bx"><rect x="300" y="20" width="260" height="210"/></g>
+      <text class="h" x="316" y="46">Raspberry Pi 4 (2 GB)</text>
+      <text class="m" x="316" y="64">hostname cubesat, Python 3</text>
+      <line class="r" x1="316" y1="76" x2="544" y2="76"/>
+      <text class="m" x="316" y="98">states/ BOOT WAITING IMAGING</text>
+      <text class="m" x="316" y="116">       IDLE DOWNLINK SAFE_MODE</text>
+      <text class="m" x="316" y="140">processing/quality.py</text>
+      <text class="m" x="316" y="158">comms/transfer.py</text>
+      <text class="m" x="316" y="176">comms/command_listener.py</text>
+      <text class="m" x="316" y="194">utils/watchdog.py  thermal.py</text>
+      <g class="bx"><rect x="20" y="30" width="200" height="70"/></g>
+      <text class="h" x="34" y="56">Camera Module 3</text>
+      <text class="m" x="34" y="76">IMX708, 4608 &times; 2592</text>
+      <text class="m" x="34" y="92">picamera2</text>
+      <g class="bx"><rect x="20" y="150" width="200" height="70"/></g>
+      <text class="h" x="34" y="176">LSM6DSO32 IMU</text>
+      <text class="m" x="34" y="196">accel + gyro</text>
+      <text class="m" x="34" y="212">Adafruit CircuitPython</text>
+      <line class="r" x1="220" y1="65" x2="300" y2="65"/><path class="ar" d="M292 61 L300 65 L292 69"/>
+      <text class="l" x="226" y="58">CSI</text>
+      <line class="r" x1="220" y1="185" x2="300" y2="185"/><path class="ar" d="M292 181 L300 185 L292 189"/>
+      <text class="l" x="226" y="178">I2C 0x6A</text>
+      <g class="bx"><rect x="660" y="80" width="200" height="90"/></g>
+      <text class="h" x="674" y="106">Ground station</text>
+      <text class="m" x="674" y="126">separate repository</text>
+      <text class="m" x="674" y="144">ACK / NACK, MD5 check</text>
+      <line class="r hot" x1="560" y1="110" x2="660" y2="110"/><path class="ar hot" d="M652 106 L660 110 L652 114"/>
+      <text class="l" x="574" y="102">1,200 B/s</text>
+      <line class="r" x1="660" y1="145" x2="560" y2="145"/><path class="ar" d="M568 141 L560 145 L568 149"/>
+      <text class="l" x="566" y="164">cmds TCP 5001</text>
+      <text class="l" x="566" y="84">Wi-Fi 2.4 GHz</text>
+    </svg>
+    <svg class="hw tall" viewBox="0 0 300 470" role="img" aria-label="Block diagram, stacked: Camera Module 3 and IMU feed the Raspberry Pi 4, which links over Wi-Fi to the ground station">
+      <g class="bx"><rect x="10" y="10" width="280" height="64"/></g>
+      <text class="h" x="22" y="34">Camera Module 3</text><text class="m" x="22" y="54">IMX708, picamera2</text>
+      <line class="r" x1="150" y1="74" x2="150" y2="108"/><path class="ar" d="M146 100 L150 108 L154 100"/><text class="l" x="160" y="96">CSI</text>
+      <g class="bx"><rect x="10" y="108" width="280" height="64"/></g>
+      <text class="h" x="22" y="132">LSM6DSO32 IMU</text><text class="m" x="22" y="152">accel + gyro, I2C 0x6A</text>
+      <line class="r" x1="150" y1="172" x2="150" y2="206"/><path class="ar" d="M146 198 L150 206 L154 198"/>
+      <g class="bx"><rect x="10" y="206" width="280" height="130"/></g>
+      <text class="h" x="22" y="230">Raspberry Pi 4 (2 GB)</text>
+      <line class="r" x1="22" y1="240" x2="278" y2="240"/>
+      <text class="m" x="22" y="262">5-state loop + SAFE_MODE</text>
+      <text class="m" x="22" y="282">quality gate, transfer</text>
+      <text class="m" x="22" y="302">command listener</text>
+      <text class="m" x="22" y="322">watchdog, thermal</text>
+      <line class="r hot" x1="150" y1="336" x2="150" y2="380"/><path class="ar hot" d="M146 372 L150 380 L154 372"/>
+      <text class="l" x="160" y="364">Wi-Fi 1,200 B/s</text>
+      <g class="bx"><rect x="10" y="380" width="280" height="64"/></g>
+      <text class="h" x="22" y="404">Ground station</text><text class="m" x="22" y="424">ACK / NACK, cmds on TCP 5001</text>
+    </svg>
+    <figcaption><b>Fig. 0.</b> Hardware block diagram. Interfaces and addresses are from <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/docs/ARCHITECTURE.md">ARCHITECTURE.md</a>. Wi-Fi stands in for a flight radio.</figcaption>
+  </figure>
+
+  <figure>
+    <img src="media/figures/state-machine.svg" alt="Animated flight state machine: BOOT, WAITING, IMAGING, IDLE, DOWNLINK stepping in order" width="844" height="240">
+    <figcaption>One pass, animated. Dwell times are not to scale. Panel A below is the clickable version.</figcaption>
+  </figure>
 </section>
 
-<section class="block" id="states">
-  <div class="wrap">
-    <p class="eyebrow">01 / State machine</p>
-    <h2>Five states, one operator-stepped loop</h2>
-    <p class="intro">Click a state to see what it does and the numbers that bound it. Run a pass to watch the cycle. Durations are the configured maximums, played back faster than real time.</p>
-    <div>
-      <div class="panel">
-        <div class="sm-stage" id="sm-stage"></div>
-        <div class="sm-ctrl">
-          <button class="btn primary" id="run-pass" type="button">Run a pass</button>
-          <span class="sm-clock" id="sm-clock" aria-live="polite">Idle. Press run.</span>
-        </div>
-      </div>
-      <div class="panel detail" id="sm-detail" aria-live="polite"></div>
-    </div>
-  </div>
-</section>
+<section id="logic">
+  <h2><i>2</i>Flight logic</h2>
 
-<section class="block" id="gate">
-  <div class="wrap">
-    <p class="eyebrow">02 / Quality gate</p>
-    <h2>The gate, run on 16 real captures</h2>
-    <p class="intro">These are 16 test shots from my rig. The flight camera captures 640 x 480, so each one is resized to that, JPEG-encoded the way the camera code does, and run through the repo's own <span class="mono">QualityGate.score_image</span>. Gyro is set to 0.0 and novelty to 1.0 because no IMU or coverage grid was attached. Pick one to see its numbers against the real thresholds.</p>
-    <div class="split">
-      <div>
-        <p class="qg-head" id="qg-head"></p>
-        <div class="seg" role="group" aria-label="Scoring resolution" id="qg-view">
-          <button type="button" aria-pressed="true" data-v="flight">Flight 640 x 480</button>
-          <button type="button" aria-pressed="false" data-v="full">Full-res 4608 x 2592</button>
-        </div>
-        <br>
-        <div class="seg" role="group" aria-label="Filter captures" id="qg-filter">
-          <button type="button" aria-pressed="true" data-f="all">All</button>
-          <button type="button" aria-pressed="false" data-f="acc">Accepted</button>
-          <button type="button" aria-pressed="false" data-f="rej">Rejected</button>
-        </div>
-        <div class="thumbs" id="thumbs"></div>
-        <p class="note" id="qg-note"></p>
+  <section id="states">
+    <h3><i>2.1</i>State machine</h3>
+    <p>Select a state for what it does and the numbers that bound it. Run a pass to step the cycle; durations are the configured maximums played back faster than real time.</p>
+    <div class="panel">
+      <p class="plabel">Panel A &middot; State machine</p>
+      <div class="sm-stage" id="sm-stage"></div>
+      <div class="sm-ctrl">
+        <button class="btn primary" id="run-pass" type="button">Run a pass</button>
+        <span class="sm-clock" id="sm-clock" aria-live="polite">Idle. Press run.</span>
       </div>
-      <div class="panel qg-detail" id="qg-detail" aria-live="polite"></div>
+      <div class="detail" id="sm-detail" aria-live="polite"></div>
     </div>
-    <p class="src" style="margin-top:var(--s4)">Source: <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/processing/quality.py">processing/quality.py</a> / data: <a href="data/captures.json">data/captures.json</a></p>
-  </div>
-</section>
+  </section>
 
-<section class="block" id="imaging">
-  <div class="wrap">
-    <p class="eyebrow">03 / Imaging gate</p>
-    <h2>When is the camera allowed to fire?</h2>
-    <p class="intro">Two conditions, both required. Nadir lock engages under 45 degrees and holds until the angle passes 55, so the camera does not flicker at the boundary. The gyro rate must stay under 1.0 rad/s. Drag the sliders.</p>
-    <div class="split">
-      <div class="panel sim">
+  <section id="gate">
+    <h3><i>2.2</i>Quality gate</h3>
+    <p>Sixteen test shots from the rig, each resized to the flight camera's 640 &times; 480, JPEG-encoded as the camera code does, and run through <span class="mono">QualityGate.score_image</span>. Gyro is 0.0 and novelty 1.0 because no IMU or coverage grid was attached. Pick a capture to see its numbers against the thresholds.</p>
+    <div class="panel">
+      <p class="plabel">Panel B &middot; Quality gate</p>
+      <div class="split">
+        <div class="qg-left">
+          <p class="qg-head" id="qg-head"></p>
+          <div class="seg" role="group" aria-label="Scoring resolution" id="qg-view">
+            <button type="button" aria-pressed="true" data-v="flight">Flight 640 &times; 480</button>
+            <button type="button" aria-pressed="false" data-v="full">Full-res 4608 &times; 2592</button>
+          </div>
+          <div class="seg" role="group" aria-label="Filter captures" id="qg-filter">
+            <button type="button" aria-pressed="true" data-f="all">All</button>
+            <button type="button" aria-pressed="false" data-f="acc">Accepted</button>
+            <button type="button" aria-pressed="false" data-f="rej">Rejected</button>
+          </div>
+          <div class="thumbs" id="thumbs"></div>
+        </div>
+        <div class="qg-detail" id="qg-detail" aria-live="polite"></div>
+      </div>
+      <p class="note" id="qg-note"></p>
+    </div>
+    <p class="src">Source: <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/processing/quality.py">processing/quality.py</a>. Data: <a href="data/captures.json">data/captures.json</a>.</p>
+    <figure class="tall">
+      <img src="media/figures/fig-contact-sheet.png" alt="Contact sheet of all 16 captures, each labelled with its gate verdict" width="1600" height="1440" loading="lazy">
+      <figcaption>The full capture set with verdicts, as a static reference for Panel B.</figcaption>
+    </figure>
+    <figure class="tall">
+      <img src="media/figures/fig-gate-variance.png" alt="Blur variance for each capture against the threshold of 20.0" width="1600" height="1380" loading="lazy">
+      <figcaption>Blur variance per capture at flight resolution. All six rejections are logged as blur; three are near-black frames that would also fail exposure.</figcaption>
+    </figure>
+    <figure>
+      <img src="media/figures/terminal-gate-and-tests.gif" alt="Terminal recording of the gate running on the captures and the test suite passing" width="1000" height="560" loading="lazy">
+      <figcaption>Fig. 7. Terminal recording of the gate script and the test suite.</figcaption>
+    </figure>
+  </section>
+
+  <section id="imaging">
+    <h3><i>2.3</i>Imaging gate</h3>
+    <p>Two conditions, both required. Nadir lock engages under 45&deg; and holds until the angle passes 55&deg;, so the camera does not flicker at the boundary. The gyro rate must stay under 1.0 rad/s.</p>
+    <div class="panel">
+      <p class="plabel">Panel C &middot; Imaging gate</p>
+      <div class="split">
         <div class="sliders">
           <div class="slider">
             <label for="angle">Pointing angle off nadir <output id="angle-out">70&deg;</output></label>
@@ -127,54 +195,50 @@
             <label for="gyro">Gyro magnitude <output id="gyro-out">0.40 rad/s</output></label>
             <input id="gyro" type="range" min="0" max="2" step="0.05" value="0.4">
           </div>
-        </div>
-        <div class="sweep-row">
           <button class="btn" type="button" id="sweep">Sweep angle 90 to 0 to 90</button>
+          <table class="readout">
+            <tr><th scope="row">Nadir lock</th><td class="res" id="lock-res"></td></tr>
+            <tr><th scope="row">Stability &lt; 1.0 rad/s</th><td class="res" id="stab-res"></td></tr>
+            <tr class="big" id="cap-pill"><th scope="row">Camera</th><td class="res" id="cap-res"></td></tr>
+          </table>
         </div>
-      </div>
-      <div class="panel sim">
         <div class="dial" id="dial">
           <svg viewBox="0 0 360 210" role="img" aria-label="Pointing angle dial showing nadir lock cone">
             <path class="cone" id="cone-lock" d=""/>
             <path class="ring" id="ring-exit" d=""/>
             <line class="axis" x1="180" y1="20" x2="180" y2="200"/>
             <line class="needle" id="needle" x1="180" y1="20" x2="180" y2="190"/>
-            <circle cx="180" cy="20" r="5" fill="#f3ecea"/>
+            <circle class="hub" cx="180" cy="20" r="4"/>
             <text x="186" y="206">nadir (ground)</text>
             <text id="lbl45" x="0" y="0">45&deg;</text>
             <text id="lbl55" x="0" y="0">55&deg;</text>
           </svg>
         </div>
-        <div class="gauges">
-          <div class="pill"><span>Nadir lock</span><span class="res" id="lock-res"></span></div>
-          <div class="pill"><span>Stability &lt; 1.0 rad/s</span><span class="res" id="stab-res"></span></div>
-          <div class="pill big" id="cap-pill"><span>Camera</span><span class="res" id="cap-res"></span></div>
-        </div>
       </div>
     </div>
-    <p class="src" style="margin-top:var(--s4)">Source: <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/states/imaging.py">states/imaging.py</a>, thresholds in <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/config.py">config.py</a>. The lock starts released each pass.</p>
-  </div>
-</section>
+    <p class="src">Source: <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/states/imaging.py">states/imaging.py</a>, thresholds in <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/config.py">config.py</a>. The lock starts released each pass.</p>
+    <figure>
+      <img src="media/figures/fig-nadir-hysteresis.png" alt="Nadir lock hysteresis: lock engages below 45 degrees and releases above 55 degrees" width="1600" height="700" loading="lazy">
+      <figcaption>The 10 degree dead band that Panel C lets you drag through.</figcaption>
+    </figure>
+  </section>
 
-<section class="block" id="downlink">
-  <div class="wrap">
-    <p class="eyebrow">04 / Downlink</p>
-    <h2>A link too slow to send everything</h2>
-    <p class="intro">The link is throttled to 1,200 bytes per second, which matches a 9600 baud radio. One 60 second window gives a 72,000 byte budget. The queue sends P1 first, then P2, then P3, and stops at the first image that does not fit. The real code sleeps one real second per chunk; this plays it back faster. The queue is the six best accepted captures at 640 x 480, with their real JPEG sizes. They are ranked by the gate's combined score (novelty fixed at 1.0). The P1/P2/P3 labels are illustrative: real tiers come from novelty against the coverage grid, which needs a live pass.</p>
+  <section id="downlink">
+    <h3><i>2.4</i>Downlink</h3>
+    <p>The link is throttled to 1,200 B/s, so a 60 s window carries at most 72,000 B. The queue sends P1, then P2, then P3, and stops at the first image that does not fit. The real code sleeps one second per chunk; this plays it back faster. The queue is the six best accepted captures with their real 640 &times; 480 JPEG sizes, ranked by combined score. The P1/P2/P3 labels are illustrative: real tiers need a live coverage grid.</p>
     <div class="panel dl">
-      <div class="dl-head">
-        <div class="dl-stats">
-          <div><span>Link time</span><b id="dl-time">0 / 60 s</b></div>
-          <div><span>Bytes sent</span><b id="dl-bytes">0 / 72,000</b></div>
-          <div><span>Images down</span><b id="dl-imgs">0</b></div>
-        </div>
-      </div>
+      <p class="plabel">Panel D &middot; Downlink</p>
+      <dl class="dl-stats">
+        <div><dt>Link time</dt><dd id="dl-time">0 / 60 s</dd></div>
+        <div><dt>Bytes sent</dt><dd id="dl-bytes">0 / 72,000</dd></div>
+        <div><dt>Images down</dt><dd id="dl-imgs">0</dd></div>
+      </dl>
       <div class="budget" role="progressbar" aria-label="Downlink byte budget" aria-valuemin="0" aria-valuemax="72000" aria-valuenow="0" id="budget"><i id="budget-fill"></i></div>
       <div class="q" id="queue"></div>
       <div class="dl-ctrl">
         <button class="btn primary" type="button" id="dl-run">Start downlink</button>
         <button class="btn" type="button" id="dl-reset">Reset</button>
-        <span class="lbl">Speedup</span>
+        <span class="lbl">Speed</span>
         <div class="seg" role="group" aria-label="Playback speed" id="dl-speed">
           <button type="button" aria-pressed="false" data-s="5">5x</button>
           <button type="button" aria-pressed="true" data-s="15">15x</button>
@@ -183,60 +247,62 @@
       </div>
       <p class="verdict-line" id="dl-verdict" aria-live="polite">Loading queue.</p>
     </div>
-    <p class="src" style="margin-top:var(--s4)">Source: <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/states/downlink.py">states/downlink.py</a>, <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/comms/transfer.py">comms/transfer.py</a></p>
-  </div>
+    <p class="src">Source: <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/states/downlink.py">states/downlink.py</a>, <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/comms/transfer.py">comms/transfer.py</a></p>
+    <figure>
+      <img src="media/figures/fig-downlink-timeline.png" alt="Step plot of bytes delivered over a 60 second downlink window against the 72,000 byte budget" width="1600" height="920" loading="lazy">
+      <figcaption>The same window run through the real <span class="mono">downlink()</span> on a stub socket.</figcaption>
+    </figure>
+  </section>
 </section>
 
-<section class="block" id="architecture">
-  <div class="wrap">
-    <p class="eyebrow">05 / Architecture</p>
-    <h2>The parts that keep it alive</h2>
-    <p class="intro">Three background systems run beside the state machine. Full write-up in <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a>.</p>
-    <div class="cards">
-      <article class="panel card">
-        <h3>WATCHDOG</h3>
-        <p>A daemon thread. If the main loop stops petting it for 30 s, it saves recovery state and restarts the process with <span class="mono">os.execv</span>. Downlink pets it every chunk so a long transfer is not mistaken for a hang.</p>
-        <ul class="kv"><li><span>Timeout</span><span>30 s</span></li><li><span>Check interval</span><span>5 s</span></li></ul>
-        <span class="src"><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/utils/watchdog.py">utils/watchdog.py</a></span>
-      </article>
-      <article class="panel card">
-        <h3>THERMAL</h3>
-        <p>CPU temperature is read from sysfs. Above 70 C the capture interval doubles. Above 80 C the spacecraft drops to safe mode: camera off, no imaging or downlink, commands still accepted.</p>
-        <ul class="kv"><li><span>Warning</span><span>70 C</span></li><li><span>Critical</span><span>80 C</span></li><li><span>Check interval</span><span>10 s</span></li></ul>
-        <span class="src"><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/utils/thermal.py">utils/thermal.py</a> / <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/states/safe_mode.py">states/safe_mode.py</a></span>
-      </article>
-      <article class="panel card">
-        <h3>COMMAND LISTENER</h3>
-        <p>A daemon thread on a TCP port reads newline-delimited JSON from the ground station. Known commands go into a thread-safe queue the state machine drains at safe points. Anything else is NACKed.</p>
-        <ul class="kv"><li><span>Port</span><span>5001</span></li><li><span>Accepted commands</span><span>11</span></li></ul>
-        <span class="src"><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/comms/command_listener.py">comms/command_listener.py</a></span>
-      </article>
-    </div>
-  </div>
+<section id="systems">
+  <h2><i>3</i>Supporting systems</h2>
+  <p>Three background systems run beside the state machine. Full write-up in <a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/docs/ARCHITECTURE.md">docs/ARCHITECTURE.md</a>.</p>
+  <table class="sys">
+    <caption>Table 2. Background systems</caption>
+    <thead><tr><th scope="col">System</th><th scope="col">Behavior</th><th scope="col">Numbers</th><th scope="col">Source</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Watchdog</th>
+        <td>A daemon thread. If the main loop stops petting it for 30 s, it saves recovery state and restarts the process with <span class="mono">os.execv</span>. Downlink pets it every chunk so a long transfer is not mistaken for a hang.</td>
+        <td class="num">timeout 30 s<br>check every 5 s</td>
+        <td><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/utils/watchdog.py">utils/watchdog.py</a></td></tr>
+      <tr><th scope="row">Thermal</th>
+        <td>CPU temperature is read from sysfs. Above 70 C the capture interval doubles. Above 80 C the spacecraft drops to safe mode: camera off, no imaging or downlink, commands still accepted.</td>
+        <td class="num">warning 70 C<br>critical 80 C<br>check every 10 s</td>
+        <td><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/utils/thermal.py">utils/thermal.py</a><br><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/states/safe_mode.py">states/safe_mode.py</a></td></tr>
+      <tr><th scope="row">Command listener</th>
+        <td>A daemon thread on a TCP port reads newline-delimited JSON from the ground station. Known commands go into a thread-safe queue the state machine drains at safe points. Anything else is NACKed.</td>
+        <td class="num">port 5001<br>11 commands</td>
+        <td><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat/blob/main/cubesat_flight/comms/command_listener.py">comms/command_listener.py</a></td></tr>
+    </tbody>
+  </table>
 </section>
 
-<section class="block" id="limits">
-  <div class="wrap">
-    <p class="eyebrow">06 / Honest limits</p>
-    <h2>What this is not</h2>
-    <p class="intro">An educational prototype. The numbers on this page are designed behavior from the code, plus the gate results above. There are no flight results here.</p>
-    <table class="limits">
+<section id="limits">
+  <h2><i>4</i>Limits</h2>
+  <table class="limits">
+    <caption>Table 3. Known limitations</caption>
+    <tbody>
       <tr><th scope="row">Blur threshold</th><td>20.0 is an uncalibrated placeholder, flagged as such in <span class="mono">config.py</span>. Laplacian variance depends on image resolution, so the right value has to be set against the real imaging surface.</td></tr>
       <tr><th scope="row">No yaw</th><td>The IMU has no magnetometer. The software tracks pitch and roll for nadir pointing but not yaw.</td></tr>
-      <tr><th scope="row">Wi-Fi, not UHF</th><td>Wi-Fi stands in for a flight radio. The 1,200 byte/s throttle reproduces the rate of a 9600 baud link.</td></tr>
+      <tr><th scope="row">Wi-Fi, not UHF</th><td>Wi-Fi stands in for a flight radio. The 1,200 B/s throttle reproduces the rate of a 9600 baud link.</td></tr>
       <tr><th scope="row">Offline analysis</th><td>Terrain segmentation and route planning exist in the repo and run in tests. They are not wired into the flight loop.</td></tr>
-      <tr><th scope="row">Simulators</th><td>The sections above are visualizations of the flight logic in JavaScript. They are not hardware footage or telemetry.</td></tr>
-    </table>
-  </div>
+    </tbody>
+  </table>
+  <figure>
+    <img src="media/figures/fig-offline-analysis.png" alt="Offline analysis layer: terrain segmentation and route planning, outside the flight loop" width="1600" height="600" loading="lazy">
+    <figcaption>The offline layer, which is not in the flight loop.</figcaption>
+  </figure>
 </section>
+
 </main>
+</div>
 
 <footer>
-  <div class="wrap">
-    <span>Ayush Garg / MIT Beaver Works Summer Institute</span>
-    <span><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat">Flight software</a> / <a href="https://github.com/ayushg8/MIT-Cubesat-Ground-Control-Station">Ground station</a></span>
-  </div>
+  <span>Ayush Garg, MIT Beaver Works Summer Institute</span>
+  <span><a href="https://github.com/ayushg8/MIT-BWSI-Cubesat">Flight software</a> &middot; <a href="https://github.com/ayushg8/MIT-Cubesat-Ground-Control-Station">Ground station</a></span>
 </footer>
+</div>
 
 <script src="app.js"></script>
 </body>

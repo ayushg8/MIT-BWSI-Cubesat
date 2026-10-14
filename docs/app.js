@@ -48,7 +48,7 @@
   function drawSM() {
     var portrait = window.matchMedia("(max-width: 640px)").matches;
     var key = portrait ? "p" : "l";
-    var svg = el("svg", { viewBox: portrait ? "0 0 340 560" : "0 0 960 250", role: "group", "aria-label": "Flight state machine" });
+    var svg = el("svg", { viewBox: portrait ? "0 0 340 560" : "0 0 960 262", role: "group", "aria-label": "Flight state machine" });
     var defs = el("defs", {});
     var mk = el("marker", { id: "ah", viewBox: "0 0 10 10", refX: "9", refY: "5", markerWidth: "7", markerHeight: "7", orient: "auto-start-reverse" });
     mk.appendChild(el("path", { d: "M0 0 L10 5 L0 10 z", class: "arrow" }));
@@ -89,7 +89,7 @@
     STATES.forEach(function (s) {
       var p = pos[s.id];
       var g = el("g", { class: "node" + (s.safe ? " safe" : ""), tabindex: "0", role: "button", "data-id": s.id, "aria-label": s.id + ": " + s.sub });
-      g.appendChild(el("rect", { x: p.x, y: p.y, width: w, height: hh, rx: 6 }));
+      g.appendChild(el("rect", { x: p.x, y: p.y, width: w, height: hh, rx: 0 }));
       g.appendChild(el("text", { x: p.x + w / 2, y: p.y + hh / 2 - 2, "text-anchor": "middle" }, s.id));
       g.appendChild(el("text", { class: "sub", x: p.x + w / 2, y: p.y + hh / 2 + 15, "text-anchor": "middle" }, s.sub));
       function pick() { smSel = s.id; paintSM(); }
@@ -199,8 +199,10 @@
     var other = view === "flight" ? "fullres" : "flight", o = 0;
     DATA.captures.forEach(function (c) { if (c[other].accepted) o++; });
     var fl = view === "flight" ? n.acc : o, fu = view === "flight" ? o : n.acc;
+    var fr = DATA.captures.filter(function (c) { return !c.flight.accepted; }), dark = fr.filter(function (c) { var b = c.flight.brightness_mean_measured; return b < M.exposure_min || b > M.exposure_max; }).length;
+    var rejNote = "The gate runs blur first, so all " + fr.length + " are logged as blur" + (dark ? "; " + dark + " of them are near-black frames that would also fail the exposure minimum of " + M.exposure_min + "." : ".");
     $("qg-head").innerHTML = "<b>" + n.acc + " of " + tot + " accepted</b> " + (view === "flight" ? "at flight resolution (640 x 480)" : "at full resolution (4608 x 2592)") + ".";
-    $("qg-note").innerHTML = "<b>Why two views.</b> The flight camera captures 640 x 480, so the representative run resizes each original to that and re-encodes it at JPEG quality " + M.jpeg_quality + " before scoring: <b>" + fl + " accepted, " + (tot - fl) + " rejected</b>, every rejection for blur. Scored as 4608 x 2592 originals the same gate accepts only <b>" + fu + "</b>. Laplacian variance depends on resolution, so one threshold cannot suit both. That sensitivity is why 20.0 is still marked uncalibrated.";
+    $("qg-note").innerHTML = "<b>Why two views.</b> The flight camera captures 640 x 480, so the representative run resizes each original to that and re-encodes it at JPEG quality " + M.jpeg_quality + " before scoring: <b>" + fl + " accepted, " + (tot - fl) + " rejected</b>. " + rejNote + " Scored as 4608 x 2592 originals the same gate accepts only <b>" + fu + "</b>. Laplacian variance depends on resolution, so one threshold cannot suit both. That sensitivity is why 20.0 is still marked uncalibrated.";
     $("hero-pass").textContent = fl + " / " + tot;
   }
   function renderThumbs() {
@@ -215,7 +217,7 @@
       b.setAttribute("aria-label", c.file + ", " + (r.accepted ? "accepted" : "rejected"));
       var im = h("img"); im.src = "media/captures/" + c.file; im.alt = ""; im.loading = "lazy"; im.width = 240; im.height = 135;
       b.appendChild(im);
-      b.appendChild(h("span", "tag " + (r.accepted ? "acc" : "rej"), r.accepted ? "ACCEPT" : "REJECT"));
+      b.appendChild(h("span", "tcap", "<span>" + c.file.replace("AyushG_", "").replace(".jpg", "") + "</span><span class='" + (r.accepted ? "acc" : "rej") + "'>" + (r.accepted ? "ACCEPT" : "REJECT") + "</span><span>var " + r.blur_variance + "</span>"));
       b.addEventListener("click", function () { qgSel = i; renderThumbs(); renderDetail(); });
       t.appendChild(b);
     });
@@ -241,14 +243,15 @@
     d.appendChild(k);
 
     var reached = c.accepted, expIn = c.brightness_mean_measured >= M.exposure_min && c.brightness_mean_measured <= M.exposure_max;
+    var expLbl = reached ? ["pass", "PASS"] : expIn ? ["na", "NOT REACHED"] : ["fail", "WOULD ALSO FAIL"];
     k = h("div", "check");
-    k.appendChild(h("div", "row", "<span>2. Exposure (mean brightness)</span><span class='res " + (reached ? "pass" : "na") + "'>" + (reached ? "PASS" : "NOT RUN") + "</span>"));
+    k.appendChild(h("div", "row", "<span>2. Exposure (mean brightness)</span><span class='res " + expLbl[0] + "'>" + expLbl[1] + "</span>"));
     k.appendChild(meter(c.brightness_mean_measured, 255, M.exposure_min, M.exposure_max));
-    k.appendChild(h("div", "vals", "mean " + c.brightness_mean_measured + " vs band " + M.exposure_min + " to " + M.exposure_max + (reached ? "" : ". The gate stops at the first failed check; measured here for reference, " + (expIn ? "inside the band." : "outside the band."))));
+    k.appendChild(h("div", "vals", "mean " + c.brightness_mean_measured + " vs band " + M.exposure_min + " to " + M.exposure_max + (reached ? "" : ". Not reached: the gate stops at the first failed check (blur). Measured here for reference, " + (expIn ? "inside the band, so it would pass." : "outside the band, so it would also fail."))));
     d.appendChild(k);
 
     k = h("div", "check");
-    k.appendChild(h("div", "row", "<span>3. Motion (gyro at capture)</span><span class='res " + (reached ? "pass" : "na") + "'>" + (reached ? "PASS" : "NOT RUN") + "</span>"));
+    k.appendChild(h("div", "row", "<span>3. Motion (gyro at capture)</span><span class='res " + (reached ? "pass" : "na") + "'>" + (reached ? "PASS" : "NOT REACHED") + "</span>"));
     k.appendChild(h("div", "vals", "gyro " + M.gyro_rate_used.toFixed(1) + " rad/s (no IMU attached, so 0.0) vs limit &lt; " + M.angular_rate_threshold.toFixed(1)));
     d.appendChild(k);
 
@@ -435,33 +438,6 @@
     });
   });
   dlInit();
-
-  /* ---------------- Hero telemetry ---------------- */
-  var TLM = [
-    ["BOOT", ["self-test, 30 s timeout", "IMU / camera / disk check"]],
-    ["WAITING", ["awaiting start_pass", "ground commands accepted"]],
-    ["IMAGING", ["75 s window, 3 s interval", "nadir < 45 deg, gyro < 1.0 rad/s"]],
-    ["IDLE", ["30 s queue build + cleanup", "P2 ages to P3 after 2 passes"]],
-    ["DOWNLINK", ["60 s window, 1,200 B/s", "72,000 B budget, MD5 per image"]]
-  ];
-  var tIdx = 0, sat = $("sat"), track = $("tlm-track");
-  TLM.forEach(function () { track.appendChild(h("i")); });
-  function tlmPaint() {
-    $("tlm-state").textContent = TLM[tIdx][0];
-    $("tlm-rows").innerHTML = TLM[tIdx][1].map(function (r) { return "<li>" + r + "</li>"; }).join("");
-    track.querySelectorAll("i").forEach(function (n, i) { n.classList.toggle("on", i === tIdx); });
-  }
-  function satAt(t) { // point on the outer ellipse, rotated -10 deg about (280,150)
-    var x = 260 * Math.cos(t), y = 84 * Math.sin(t), r = -10 * Math.PI / 180;
-    sat.setAttribute("cx", (280 + x * Math.cos(r) - y * Math.sin(r)).toFixed(1));
-    sat.setAttribute("cy", (150 + x * Math.sin(r) + y * Math.cos(r)).toFixed(1));
-  }
-  tIdx = 2; tlmPaint(); satAt(-0.35);
-  if (!reduced) {
-    var t0 = performance.now();
-    setInterval(function () { tIdx = (tIdx + 1) % TLM.length; tlmPaint(); }, 2600);
-    (function loop(now) { satAt(-0.35 + ((now - t0) / 24000) * Math.PI * 2); requestAnimationFrame(loop); })(t0);
-  }
 
   // Hooks used by the demo recorder only.
   window.__demo = { runPass: runPass, dlStart: dlStart };

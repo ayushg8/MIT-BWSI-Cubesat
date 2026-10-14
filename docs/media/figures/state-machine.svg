@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 844 280" width="844" height="280" font-family="Helvetica, Arial, sans-serif">
+<rect width="844" height="280" fill="#F6F4EF"/>
+<text x="30" y="30" font-size="15" font-weight="700" fill="#16150F">Fig. 1: Flight state machine, one pass</text>
+<text x="30" y="48" font-size="11" fill="#6E6A60">Active state steps in order; dwell times are not to scale. Dashed: SAFE_MODE, entered on a failed self-test (also on CPU above 80 C, not drawn).</text>
+<rect x="30" y="100" width="128" height="64" fill="#F6F4EF" stroke="#16150F" stroke-width="1.2"><animate attributeName="fill" values="#F6F4EF;#F6F4EF;#16150F;#16150F;#F6F4EF;#F6F4EF" keyTimes="0;0.0000;0.0000;0.1990;0.2000;1" dur="8.0s" repeatCount="indefinite"/></rect>
+<text x="94.0" y="129" text-anchor="middle" font-size="14" font-weight="700" fill="#16150F">BOOT<animate attributeName="fill" values="#16150F;#16150F;#F6F4EF;#F6F4EF;#16150F;#16150F" keyTimes="0;0.0000;0.0000;0.1990;0.2000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<text x="94.0" y="150" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace" fill="#6E6A60">self-test<animate attributeName="fill" values="#6E6A60;#6E6A60;#D8D3C7;#D8D3C7;#6E6A60;#6E6A60" keyTimes="0;0.0000;0.0000;0.1990;0.2000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<line x1="158" y1="132" x2="188" y2="132" stroke="#16150F" stroke-width="1.2"/>
+<path d="M188 127 L194 132 L188 137" fill="none" stroke="#16150F" stroke-width="1.2"/>
+<rect x="194" y="100" width="128" height="64" fill="#F6F4EF" stroke="#16150F" stroke-width="1.2"><animate attributeName="fill" values="#F6F4EF;#F6F4EF;#16150F;#16150F;#F6F4EF;#F6F4EF" keyTimes="0;0.1990;0.2000;0.3990;0.4000;1" dur="8.0s" repeatCount="indefinite"/></rect>
+<text x="258.0" y="129" text-anchor="middle" font-size="14" font-weight="700" fill="#16150F">WAITING<animate attributeName="fill" values="#16150F;#16150F;#F6F4EF;#F6F4EF;#16150F;#16150F" keyTimes="0;0.1990;0.2000;0.3990;0.4000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<text x="258.0" y="150" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace" fill="#6E6A60">start_pass<animate attributeName="fill" values="#6E6A60;#6E6A60;#D8D3C7;#D8D3C7;#6E6A60;#6E6A60" keyTimes="0;0.1990;0.2000;0.3990;0.4000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<line x1="322" y1="132" x2="352" y2="132" stroke="#16150F" stroke-width="1.2"/>
+<path d="M352 127 L358 132 L352 137" fill="none" stroke="#16150F" stroke-width="1.2"/>
+<rect x="358" y="100" width="128" height="64" fill="#F6F4EF" stroke="#16150F" stroke-width="1.2"><animate attributeName="fill" values="#F6F4EF;#F6F4EF;#16150F;#16150F;#F6F4EF;#F6F4EF" keyTimes="0;0.3990;0.4000;0.5990;0.6000;1" dur="8.0s" repeatCount="indefinite"/></rect>
+<text x="422.0" y="129" text-anchor="middle" font-size="14" font-weight="700" fill="#16150F">IMAGING<animate attributeName="fill" values="#16150F;#16150F;#F6F4EF;#F6F4EF;#16150F;#16150F" keyTimes="0;0.3990;0.4000;0.5990;0.6000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<text x="422.0" y="150" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace" fill="#6E6A60">IMU gated<animate attributeName="fill" values="#6E6A60;#6E6A60;#D8D3C7;#D8D3C7;#6E6A60;#6E6A60" keyTimes="0;0.3990;0.4000;0.5990;0.6000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<line x1="486" y1="132" x2="516" y2="132" stroke="#16150F" stroke-width="1.2"/>
+<path d="M516 127 L522 132 L516 137" fill="none" stroke="#16150F" stroke-width="1.2"/>
+<rect x="522" y="100" width="128" height="64" fill="#F6F4EF" stroke="#16150F" stroke-width="1.2"><animate attributeName="fill" values="#F6F4EF;#F6F4EF;#16150F;#16150F;#F6F4EF;#F6F4EF" keyTimes="0;0.5990;0.6000;0.7990;0.8000;1" dur="8.0s" repeatCount="indefinite"/></rect>
+<text x="586.0" y="129" text-anchor="middle" font-size="14" font-weight="700" fill="#16150F">IDLE<animate attributeName="fill" values="#16150F;#16150F;#F6F4EF;#F6F4EF;#16150F;#16150F" keyTimes="0;0.5990;0.6000;0.7990;0.8000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<text x="586.0" y="150" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace" fill="#6E6A60">build queue<animate attributeName="fill" values="#6E6A60;#6E6A60;#D8D3C7;#D8D3C7;#6E6A60;#6E6A60" keyTimes="0;0.5990;0.6000;0.7990;0.8000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<line x1="650" y1="132" x2="680" y2="132" stroke="#16150F" stroke-width="1.2"/>
+<path d="M680 127 L686 132 L680 137" fill="none" stroke="#16150F" stroke-width="1.2"/>
+<rect x="686" y="100" width="128" height="64" fill="#F6F4EF" stroke="#16150F" stroke-width="1.2"><animate attributeName="fill" values="#F6F4EF;#F6F4EF;#16150F;#16150F;#F6F4EF;#F6F4EF" keyTimes="0;0.7990;0.8000;0.9990;1.0000;1" dur="8.0s" repeatCount="indefinite"/></rect>
+<text x="750.0" y="129" text-anchor="middle" font-size="14" font-weight="700" fill="#16150F">DOWNLINK<animate attributeName="fill" values="#16150F;#16150F;#F6F4EF;#F6F4EF;#16150F;#16150F" keyTimes="0;0.7990;0.8000;0.9990;1.0000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<text x="750.0" y="150" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace" fill="#6E6A60">1,200 B/s<animate attributeName="fill" values="#6E6A60;#6E6A60;#D8D3C7;#D8D3C7;#6E6A60;#6E6A60" keyTimes="0;0.7990;0.8000;0.9990;1.0000;1" dur="8.0s" repeatCount="indefinite"/></text>
+<path d="M750.0 164 V200 H258.0 V166" fill="none" stroke="#D9480F" stroke-width="1.4"/>
+<path d="M253.0 172 L258.0 164 L263.0 172" fill="none" stroke="#D9480F" stroke-width="1.4"/>
+<text x="504.0" y="216" text-anchor="middle" font-size="11" font-family="Menlo, Consolas, monospace" fill="#D9480F">window over, back to WAITING</text>
+<rect x="30" y="212" width="128" height="44" fill="none" stroke="#6E6A60" stroke-width="1.2" stroke-dasharray="5 4"/>
+<text x="94.0" y="239" text-anchor="middle" font-size="13" font-weight="700" fill="#6E6A60">SAFE_MODE</text>
+<path d="M94.0 164 V211" fill="none" stroke="#6E6A60" stroke-width="1.2" stroke-dasharray="5 4"/>
+<path d="M90.0 205 L94.0 211 L98.0 205" fill="none" stroke="#6E6A60" stroke-width="1.2"/>
+<text x="102.0" y="194" font-family="Menlo, Consolas, monospace" font-size="11" fill="#6E6A60">self-test fail</text>
+<path d="M158 234 H218.0 V165" fill="none" stroke="#6E6A60" stroke-width="1.2" stroke-dasharray="5 4"/>
+<path d="M214.0 171 L218.0 165 L222.0 171" fill="none" stroke="#6E6A60" stroke-width="1.2"/>
+<text x="166" y="252" font-family="Menlo, Consolas, monospace" font-size="11" fill="#6E6A60">resume_normal</text>
+</svg>
