@@ -67,6 +67,7 @@ The terminal output above is a real run of `docs/figures/gate_report.py` and `py
 <summary>How the gate decides</summary>
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 flowchart TD
     A[JPEG] --> B{readable?}
     B -- no --> R[reject]
@@ -90,6 +91,7 @@ Gyro was set to 0.0 and novelty to 1.0 for these runs, since no IMU or coverage 
 The link moves 1,200 bytes per second for a 60 second window, so a pass carries 72,000 bytes at most. Fig. 5 runs the real `downlink()` loop against a stub socket on a virtual clock, with the accepted captures queued best score first. Two photos go out, and the third would cross the budget, so it waits for the next pass.
 
 ```mermaid
+%%{init: {'theme': 'neutral'}}%%
 sequenceDiagram
     participant S as CubeSat (transfer.py)
     participant G as Ground station
