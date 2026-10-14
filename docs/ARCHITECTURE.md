@@ -69,8 +69,8 @@ COMMAND_PORT = 5001
 # Transfer header: JSON + newline, then raw bytes
 # {"type": "image"|"telemetry", "filename": "...", "file_size": N, "md5": "...", "metadata": {...}}
 
-ACK = b'\x06'
-NACK = b'\x15'
+ACK = b"\x06"
+NACK = b"\x15"
 
 # Commands (GCS → CubeSat): JSON + newline
 # {"cmd": "retransmit", "image_id": "..."}
@@ -103,7 +103,7 @@ PASS_CYCLE_DELAY_SEC = 10
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
 JPEG_QUALITY = 70
-JPEG_MAX_SIZE_BYTES = 40000          # If > this at Q=70, recompress at Q=60
+JPEG_MAX_SIZE_BYTES = 40000  # If > this at Q=70, recompress at Q=60
 CAPTURE_INTERVAL_SEC = 3.0
 MAX_IMAGES_PER_PASS = 20
 
@@ -114,25 +114,25 @@ MAX_IMAGES_PER_PASS = 20
 CAMERA_USE_AUTO_EXPOSURE = True
 
 # === CAMERA CALIBRATION (MEASURED) ===
-CAMERA_HEIGHT_CM = 0.0               # Fill in: measured lens-to-surface distance
+CAMERA_HEIGHT_CM = 0.0  # Fill in: measured lens-to-surface distance
 CAMERA_FOV_H_DEG = 62.2
 CAMERA_FOV_V_DEG = 48.8
 
 # === IMU THRESHOLDS ===
 # [FIX #2] Loosened for handheld operation. A real satellite at 100km would use
 # much tighter tolerances, but handheld demo has more noise.
-ANGULAR_RATE_THRESHOLD = 1.0         # rad/s (was 0.5 — too tight for handheld)
-NADIR_TOLERANCE_DEG = 45             # degrees (was 30 — too tight for handheld)
+ANGULAR_RATE_THRESHOLD = 1.0  # rad/s (was 0.5 — too tight for handheld)
+NADIR_TOLERANCE_DEG = 45  # degrees (was 30 — too tight for handheld)
 # [FIX #10] Hysteresis: once nadir is confirmed at < 45°, stay confirmed
 # until angle exceeds NADIR_EXIT_DEG. Prevents rapid capture-skip toggling.
-NADIR_EXIT_DEG = 55                  # Must exceed this to lose nadir lock
+NADIR_EXIT_DEG = 55  # Must exceed this to lose nadir lock
 
 # === QUALITY GATES ===
 # [FIX #3] Blur threshold MUST be calibrated against your actual surface.
 # Before demo: take 10 sharp + 10 blurry photos of the real surface.
 # Set threshold halfway between lowest sharp variance and highest blurry variance.
 # Default of 50 is conservative — will likely need adjustment.
-BLUR_THRESHOLD = 50.0                # ← CALIBRATE THIS. Default is a guess.
+BLUR_THRESHOLD = 50.0  # ← CALIBRATE THIS. Default is a guess.
 EXPOSURE_MIN = 15
 EXPOSURE_MAX = 240
 QUALITY_WEIGHT_BLUR = 0.3
@@ -153,7 +153,7 @@ DEFAULT_GRID_CELL = (0, 0)
 GROUND_STATION_IP = "192.168.1.100"
 DATA_PORT = 5000
 COMMAND_PORT = 5001
-THROTTLE_BYTES_PER_SEC = 1200        # 9600 bps / 8 = flight UHF equivalent
+THROTTLE_BYTES_PER_SEC = 1200  # 9600 bps / 8 = flight UHF equivalent
 ACK_TIMEOUT_SEC = 5
 MAX_RETRIES_PER_IMAGE = 3
 
@@ -163,11 +163,11 @@ MAX_RETRIES_PER_IMAGE = 3
 # DATA_BUDGET = THROTTLE_BYTES_PER_SEC * DOWNLINK_WINDOW_SEC (computed at runtime)
 
 # [FIX #11] Max consecutive failed GCS connections before giving up
-MAX_GCS_CONNECT_FAILURES = 3         # After this, stop trying until manual command
+MAX_GCS_CONNECT_FAILURES = 3  # After this, stop trying until manual command
 
 # === PRIORITY TIERS ===
 # [FIX #5] P2 aging lowered from 5 to 2 so it actually triggers in a 3-pass demo
-P2_AGING_PASSES = 2                  # Was 5 — never triggered in 3-pass demo
+P2_AGING_PASSES = 2  # Was 5 — never triggered in 3-pass demo
 
 # === STORAGE ===
 IMAGE_DIR = "/home/cubesat/cubesat_flight/data/images"
@@ -403,6 +403,7 @@ At ~28 KB per image, this is ~2 images per 60-second window. The "data budget ex
 **[FIX #11]** Connection failure tracking:
 ```python
 consecutive_failures = 0
+
 
 def connect():
     try:

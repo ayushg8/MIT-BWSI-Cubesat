@@ -1,0 +1,480 @@
+{
+ "meta": {
+  "blur_threshold": 20.0,
+  "exposure_min": 15,
+  "exposure_max": 240,
+  "angular_rate_threshold": 1.0,
+  "jpeg_quality": 70,
+  "jpeg_max_size_bytes": 40000,
+  "gyro_rate_used": 0.0,
+  "novelty_used": 1.0,
+  "priority_tier": "not computed (needs coverage tracker state)",
+  "method": "Primary: each original resized to 640x480 (cv2.INTER_AREA), JPEG-encoded at JPEG_QUALITY (Q-10 if over JPEG_MAX_SIZE_BYTES), then QualityGate.score_image. Secondary: the 4608x2592 originals scored as-is. The 16:9 originals are resized straight to 4:3, which squashes them; the real camera would produce 4:3 natively."
+ },
+ "captures": [
+  {
+   "file": "AyushG_054319.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 24134,
+    "blur_variance": 75.78,
+    "brightness_mean_measured": 71.08,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.8683,
+    "blur_score": 0.9297,
+    "exposure_score": 0.5575,
+    "exposure_mean": 71.08
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1837366,
+    "blur_variance": 29.55,
+    "brightness_mean_measured": 71.1,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.6372
+   }
+  },
+  {
+   "file": "AyushG_054605.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 6474,
+    "blur_variance": 0.54,
+    "brightness_mean_measured": 5.55,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0,
+    "blur_score": 0.0,
+    "exposure_score": 0.0,
+    "exposure_mean": null
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1728779,
+    "blur_variance": 10.48,
+    "brightness_mean_measured": 5.52,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_055150.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 6595,
+    "blur_variance": 0.84,
+    "brightness_mean_measured": 6.3,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0,
+    "blur_score": 0.0,
+    "exposure_score": 0.0,
+    "exposure_mean": null
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1734748,
+    "blur_variance": 11.6,
+    "brightness_mean_measured": 6.25,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_055234.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 6883,
+    "blur_variance": 1.1,
+    "brightness_mean_measured": 6.53,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0,
+    "blur_score": 0.0,
+    "exposure_score": 0.0,
+    "exposure_mean": null
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1762053,
+    "blur_variance": 12.16,
+    "brightness_mean_measured": 6.47,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_055240.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 17105,
+    "blur_variance": 5.74,
+    "brightness_mean_measured": 90.28,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0,
+    "blur_score": 0.0,
+    "exposure_score": 0.0,
+    "exposure_mean": null
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1406690,
+    "blur_variance": 6.67,
+    "brightness_mean_measured": 90.28,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_193122.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 19165,
+    "blur_variance": 56.87,
+    "brightness_mean_measured": 111.48,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.8529,
+    "blur_score": 0.6145,
+    "exposure_score": 0.8744,
+    "exposure_mean": 111.48
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 874695,
+    "blur_variance": 3.37,
+    "brightness_mean_measured": 111.48,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_193244.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 13149,
+    "blur_variance": 6.96,
+    "brightness_mean_measured": 121.55,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0,
+    "blur_score": 0.0,
+    "exposure_score": 0.0,
+    "exposure_mean": null
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 718263,
+    "blur_variance": 1.95,
+    "brightness_mean_measured": 121.54,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_193548.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 32146,
+    "blur_variance": 360.26,
+    "brightness_mean_measured": 117.91,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.9812,
+    "blur_score": 1.0,
+    "exposure_score": 0.9248,
+    "exposure_mean": 117.91
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1251633,
+    "blur_variance": 13.59,
+    "brightness_mean_measured": 117.89,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_193553.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 30404,
+    "blur_variance": 297.94,
+    "brightness_mean_measured": 109.6,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.9649,
+    "blur_score": 1.0,
+    "exposure_score": 0.8596,
+    "exposure_mean": 109.6
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1223105,
+    "blur_variance": 11.95,
+    "brightness_mean_measured": 109.59,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_193558.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 24424,
+    "blur_variance": 124.45,
+    "brightness_mean_measured": 111.1,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.9678,
+    "blur_score": 1.0,
+    "exposure_score": 0.8714,
+    "exposure_mean": 111.1
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1036338,
+    "blur_variance": 5.38,
+    "brightness_mean_measured": 111.08,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_193603.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 13668,
+    "blur_variance": 20.91,
+    "brightness_mean_measured": 125.04,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.6997,
+    "blur_score": 0.0151,
+    "exposure_score": 0.9807,
+    "exposure_mean": 125.04
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 884074,
+    "blur_variance": 2.82,
+    "brightness_mean_measured": 124.99,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_194130.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 23639,
+    "blur_variance": 189.11,
+    "brightness_mean_measured": 108.48,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.9627,
+    "blur_score": 1.0,
+    "exposure_score": 0.8509,
+    "exposure_mean": 108.48
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1167135,
+    "blur_variance": 10.08,
+    "brightness_mean_measured": 108.44,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_194135.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 17173,
+    "blur_variance": 13.26,
+    "brightness_mean_measured": 86.11,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0,
+    "blur_score": 0.0,
+    "exposure_score": 0.0,
+    "exposure_mean": null
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 910990,
+    "blur_variance": 2.88,
+    "brightness_mean_measured": 86.09,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_194140.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 21748,
+    "blur_variance": 79.09,
+    "brightness_mean_measured": 98.58,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.9388,
+    "blur_score": 0.9849,
+    "exposure_score": 0.7732,
+    "exposure_mean": 98.58
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1007411,
+    "blur_variance": 4.48,
+    "brightness_mean_measured": 98.56,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_194145.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 24410,
+    "blur_variance": 187.53,
+    "brightness_mean_measured": 106.13,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.9581,
+    "blur_score": 1.0,
+    "exposure_score": 0.8324,
+    "exposure_mean": 106.13
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 1113675,
+    "blur_variance": 7.62,
+    "brightness_mean_measured": 106.09,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  },
+  {
+   "file": "AyushG_194150.jpg",
+   "flight": {
+    "width": 640,
+    "height": 480,
+    "jpeg_quality": 70,
+    "file_bytes": 13226,
+    "blur_variance": 22.41,
+    "brightness_mean_measured": 110.24,
+    "accepted": true,
+    "status": "passed",
+    "reason": null,
+    "score": 0.6782,
+    "blur_score": 0.0402,
+    "exposure_score": 0.8646,
+    "exposure_mean": 110.24
+   },
+   "fullres": {
+    "width": 4608,
+    "height": 2592,
+    "file_bytes": 804114,
+    "blur_variance": 2.58,
+    "brightness_mean_measured": 110.22,
+    "accepted": false,
+    "status": "rejected_blur",
+    "reason": "blur",
+    "score": 0.0
+   }
+  }
+ ]
+}

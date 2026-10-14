@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 320" width="1280" height="320" role="img" aria-label="MuraltZ CubeSat flight software: BOOT, WAITING, IMAGING, IDLE, DOWNLINK">
+  <rect width="1280" height="320" fill="#0a0607"/>
+  <g fill="none" stroke="#43343a" stroke-width="1.5">
+    <ellipse cx="968" cy="134" rx="236" ry="72" transform="rotate(-9 968 134)"/>
+    <ellipse cx="968" cy="134" rx="170" ry="48" transform="rotate(-9 968 134)" stroke-dasharray="4 8"/>
+  </g>
+  <circle cx="968" cy="134" r="26" fill="#0a0607" stroke="#b9aaa8" stroke-width="1.5"/>
+  <circle cx="1189" cy="95" r="7" fill="#ff5a69"/>
+  <g font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" letter-spacing="1.2" fill="#f3ecea" text-anchor="middle">
+    <g stroke="#43343a" stroke-width="1.5" fill="#1a1214">
+      <rect x="728" y="226" width="84" height="30" rx="5"/>
+      <rect x="824" y="226" width="84" height="30" rx="5"/>
+      <rect x="920" y="226" width="84" height="30" rx="5" fill="#ff5a6922" stroke="#ff5a69"/>
+      <rect x="1016" y="226" width="62" height="30" rx="5"/>
+      <rect x="1090" y="226" width="126" height="30" rx="5"/>
+    </g>
+    <text x="770" y="245">BOOT</text>
+    <text x="866" y="245">WAITING</text>
+    <text x="962" y="245" fill="#ff5a69">IMAGING</text>
+    <text x="1047" y="245">IDLE</text>
+    <text x="1153" y="245">DOWNLINK</text>
+  </g>
+  <g font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" letter-spacing="3" fill="#8a7b7a" font-size="12">
+    <text x="64" y="64">MIT BEAVER WORKS SUMMER INSTITUTE</text>
+  </g>
+  <text x="62" y="160" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif" font-size="96" fill="#f3ecea" letter-spacing="-1">MuraltZ</text>
+  <text x="64" y="206" font-family="'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif" font-size="25" fill="#b9aaa8">A CubeSat that decides what is worth sending home.</text>
+  <text x="64" y="256" font-family="ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#8a7b7a">1,200 B/S LINK / 72,000 B PER PASS / RASPBERRY PI 4</text>
+</svg>
