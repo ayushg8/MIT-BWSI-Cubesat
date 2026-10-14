@@ -19,8 +19,8 @@ CALIBRATION PROCEDURE (from docs/ARCHITECTURE.md section 10):
       Example: sharp min=180, blurry max=40 → threshold = (180+40)/2 = 110
 
   NOTE: Sand and regolith textures often have LOW Laplacian variance even when
-  sharp, because the surface has little high-frequency detail. The default of 50
-  in config.py is a conservative guess — it WILL need adjustment.
+  sharp, because the surface has little high-frequency detail. The default
+  in config.py is a conservative guess; it WILL need adjustment.
 
 Usage:
     cd /home/cubesat/cubesat_flight
@@ -31,8 +31,8 @@ Usage:
 
 import os
 import sys
-import time
 import tempfile
+import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -40,13 +40,12 @@ import cv2
 import numpy as np
 
 from config import (
+    ANGULAR_RATE_THRESHOLD,
     BLUR_THRESHOLD,
     EXPOSURE_MAX,
     EXPOSURE_MIN,
     IMAGE_HEIGHT,
     IMAGE_WIDTH,
-    JPEG_QUALITY,
-    ANGULAR_RATE_THRESHOLD,
     QUALITY_WEIGHT_BLUR,
     QUALITY_WEIGHT_EXPOSURE,
     QUALITY_WEIGHT_MOTION,
@@ -94,14 +93,18 @@ def take_photos(n_photos, interval_sec):
         cam.capture(fname)
         meta = cam.get_metadata()
         size = os.path.getsize(fname)
-        print(f"saved ({size // 1024} KB)  ExposureTime={meta.get('ExposureTime')} µs  Gain={meta.get('AnalogueGain'):.2f}")
+        exposure_us = meta.get("ExposureTime")
+        gain = meta.get("AnalogueGain")
+        print(f"saved ({size // 1024} KB)  ExposureTime={exposure_us} µs  Gain={gain:.2f}")
 
-        results.append({
-            "index": i + 1,
-            "filepath": fname,
-            "file_size": size,
-            "cam_meta": meta,
-        })
+        results.append(
+            {
+                "index": i + 1,
+                "filepath": fname,
+                "file_size": size,
+                "cam_meta": meta,
+            }
+        )
 
         if i < n_photos - 1:
             time.sleep(interval_sec)
@@ -167,11 +170,11 @@ def analyse_photos(results, imu=None):
         print(f"  │  ExposureTime  : {cam_meta.get('ExposureTime')} µs")
         print(f"  │  AnalogueGain  : {cam_meta.get('AnalogueGain')}")
         print(f"  │  Lux           : {cam_meta.get('Lux')}")
-        print(f"  │")
+        print("  │")
         print(f"  │  Blur variance : {blur_var:>8.2f}  (BLUR_THRESHOLD={BLUR_THRESHOLD})")
 
         if b_score is None:
-            print(f"  │  Blur score    :   HARD FAIL  (variance < threshold — image too blurry)")
+            print("  │  Blur score    :   HARD FAIL  (variance < threshold — image too blurry)")
         else:
             print(f"  │  Blur score    : {_bar(b_score)}")
 
@@ -190,14 +193,14 @@ def analyse_photos(results, imu=None):
             else:
                 print(f"  │  Motion score  : {_bar(m_score)}")
 
-        print(f"  │")
+        print("  │")
         if combined is not None:
             print(f"  │  Combined score: {_bar(combined)}")
             tier = "P1" if combined >= 0.8 else ("P2" if combined >= 0.5 else "P3")
             print(f"  │  Priority tier : {tier}  (novelty assumed 1.0 for calibration)")
         else:
-            print(f"  │  Combined score: REJECTED (hard fail on one or more checks)")
-        print(f"  └────────────────────────────────────────────────────────────┘")
+            print("  │  Combined score: REJECTED (hard fail on one or more checks)")
+        print("  └────────────────────────────────────────────────────────────┘")
 
         # Clean up temp file.
         try:
@@ -227,7 +230,7 @@ def print_calibration_guide(blur_variances):
     print(f"    Blur variance avg : {avg_var:.2f}")
     print(f"    Current threshold : {BLUR_THRESHOLD}")
 
-    print(f"""
+    print("""
   CALIBRATION STEPS:
   ──────────────────
   1. Run this script with CubeSat HELD STILL above the surface.
@@ -267,8 +270,8 @@ def main():
     print(f"\n  Photos     : {n_photos}")
     print(f"  Interval   : {interval_sec}s between captures")
     print(f"  Current BLUR_THRESHOLD in config.py: {BLUR_THRESHOLD}")
-    print(f"\n  Hold the CubeSat STILL and pointing DOWN over the surface.")
-    print(f"  Press Enter when ready …", end="")
+    print("\n  Hold the CubeSat STILL and pointing DOWN over the surface.")
+    print("  Press Enter when ready …", end="")
     try:
         input()
     except (KeyboardInterrupt, EOFError):
@@ -279,6 +282,7 @@ def main():
     imu = None
     try:
         from sensors.imu import IMU
+
         imu = IMU()
         print("  IMU available — motion scores will be real.")
     except Exception as exc:

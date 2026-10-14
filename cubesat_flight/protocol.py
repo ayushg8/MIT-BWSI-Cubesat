@@ -1,18 +1,17 @@
-# protocol.py — Shared interface contract between CubeSat and GCS
-#
-# This file is IDENTICAL in both the CubeSat and GCS codebases.
-# Do not add CubeSat-only or GCS-only logic here.
+"""Shared interface contract between the CubeSat and the GCS.
 
-# === PORTS ===
-DATA_PORT = 5000        # CubeSat → GCS: images and telemetry (TCP)
-COMMAND_PORT = 5001     # GCS → CubeSat: JSON commands (TCP, persistent listener)
+This file is identical in both codebases. Do not add CubeSat-only or GCS-only logic here.
+"""
 
-# === ACK / NACK ===
-ACK = b'\x06'   # ASCII ACK — GCS sends this after a successful receive + verify
-NACK = b'\x15'  # ASCII NAK — GCS sends this if MD5 mismatch or decode failure
+# Ports
+DATA_PORT = 5000  # CubeSat → GCS: images and telemetry (TCP)
+COMMAND_PORT = 5001  # GCS → CubeSat: JSON commands (TCP, persistent listener)
 
-# === TRANSFER PROTOCOL ===
-#
+# Handshake bytes
+ACK = b"\x06"  # ASCII ACK — GCS sends this after a successful receive + verify
+NACK = b"\x15"  # ASCII NAK — GCS sends this if MD5 mismatch or decode failure
+
+# Transfer protocol
 # Every transfer (image or telemetry) follows this sequence:
 #
 #   1. CubeSat opens TCP connection to GCS at DATA_PORT
@@ -36,8 +35,7 @@ NACK = b'\x15'  # ASCII NAK — GCS sends this if MD5 mismatch or decode failure
 #   6. CubeSat reads exactly 1 byte. ACK → mark sent. NACK → retry or skip.
 #      Socket timeout counts as a link failure (image stays queued).
 
-# === COMMAND PROTOCOL (GCS → CubeSat) ===
-#
+# Command protocol (GCS -> CubeSat)
 # GCS connects to CubeSat COMMAND_PORT and sends JSON + '\n'.
 # CubeSat command_listener runs as a daemon thread and parses these continuously.
 #
@@ -79,8 +77,7 @@ NACK = b'\x15'  # ASCII NAK — GCS sends this if MD5 mismatch or decode failure
 #   {"cmd": "reset_mission"}
 #       → Reset pass counter, clear coverage/queue/image index, start fresh
 
-# === IMU METADATA (optional) ===
-#
+# IMU metadata (optional)
 # When the CubeSat has IMU integration enabled, the metadata dict in the
 # image transfer header may include an "imu" sub-object:
 #
@@ -101,8 +98,7 @@ NACK = b'\x15'  # ASCII NAK — GCS sends this if MD5 mismatch or decode failure
 # If "imu" is absent, the stitcher falls back to pure SIFT feature matching.
 # CubeSat-side changes to populate these fields will be implemented separately.
 
-# === FILE NAMING CONVENTION ===
-#
+# File naming convention
 # Image:    pass{N}_img{MM}_{YYYYMMDD_HHMMSS}.jpg
 # Sidecar:  pass{N}_img{MM}_{YYYYMMDD_HHMMSS}_meta.json
 #

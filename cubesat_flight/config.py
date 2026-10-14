@@ -1,32 +1,37 @@
-# config.py — All mission parameters for MuraltZ CubeSat flight software
+"""Mission parameters for the MuraltZ CubeSat flight software.
+
+Network and storage settings can be overridden with environment variables
+(see .env.example).
+"""
 
 import os
 
 
-def _env_int(name, default):
+def _env_int(name: str, default: int) -> int:
     return int(os.getenv(name, str(default)))
 
 
-def _env_float(name, default):
+def _env_float(name: str, default: float) -> float:
     return float(os.getenv(name, str(default)))
+
 
 MISSION_NAME = "MuraltZ"
 CUBESAT_ID = "MURALTZ-01"
 
-# === STATE TIMING ===
-BOOT_TIMEOUT = 30               # sec — max time allowed for boot self-test
-IMAGING_WINDOW_SEC = 75         # sec — max duration of one imaging pass
-IDLE_DURATION_SEC = 30          # sec — queue build / cleanup after imaging
-DOWNLINK_WINDOW_SEC = 60        # sec — max time allocated for one downlink pass
-PASS_CYCLE_DELAY_SEC = 10       # sec — pause between downlink end and next imaging
+# State Timing
+BOOT_TIMEOUT = 30  # sec — max time allowed for boot self-test
+IMAGING_WINDOW_SEC = 75  # sec — max duration of one imaging pass
+IDLE_DURATION_SEC = 30  # sec — queue build / cleanup after imaging
+DOWNLINK_WINDOW_SEC = 60  # sec — max time allocated for one downlink pass
+PASS_CYCLE_DELAY_SEC = 10  # sec — pause between downlink end and next imaging
 
-# === CAMERA ===
+# Camera
 IMAGE_WIDTH = 640
 IMAGE_HEIGHT = 480
-JPEG_QUALITY = 70               # Primary capture quality
-JPEG_MAX_SIZE_BYTES = 40000     # If file > this at JPEG_QUALITY, recompress at JPEG_QUALITY-10
-CAPTURE_INTERVAL_SEC = 3.0      # Seconds between capture attempts in imaging loop
-MAX_IMAGES_PER_PASS = 20        # Hard cap on captures per pass
+JPEG_QUALITY = 70  # Primary capture quality
+JPEG_MAX_SIZE_BYTES = 40000  # If file > this at JPEG_QUALITY, recompress at JPEG_QUALITY-10
+CAPTURE_INTERVAL_SEC = 3.0  # Seconds between capture attempts in imaging loop
+MAX_IMAGES_PER_PASS = 20  # Hard cap on captures per pass
 
 # Camera runs in AUTO-EXPOSURE mode by default. We do NOT manually calibrate
 # exposure because the flashlight creates uneven brightness across the surface.
@@ -34,36 +39,36 @@ MAX_IMAGES_PER_PASS = 20        # Hard cap on captures per pass
 # get_metadata() after each capture and logged in the _meta.json sidecar.
 CAMERA_USE_AUTO_EXPOSURE = True
 
-# === CAMERA CALIBRATION (MEASURED — fill in before demo) ===
-CAMERA_HEIGHT_CM = 0.0          # Measured lens-to-surface distance in cm
-CAMERA_FOV_H_DEG = 62.2         # Horizontal field of view, Pi Camera Module 3
-CAMERA_FOV_V_DEG = 48.8         # Vertical field of view, Pi Camera Module 3
+# Camera calibration (measure before demo)
+CAMERA_HEIGHT_CM = 0.0  # Measured lens-to-surface distance in cm
+CAMERA_FOV_H_DEG = 62.2  # Horizontal field of view, Pi Camera Module 3
+CAMERA_FOV_V_DEG = 48.8  # Vertical field of view, Pi Camera Module 3
 
-# === IMU THRESHOLDS ===
+# IMU Thresholds
 # Loosened for handheld operation. A real satellite at 100 km would be tighter.
-ANGULAR_RATE_THRESHOLD = 1.0    # rad/s — max gyro magnitude to be considered stable
-NADIR_TOLERANCE_DEG = 45        # degrees — nadir lock engages below this angle
+ANGULAR_RATE_THRESHOLD = 1.0  # rad/s — max gyro magnitude to be considered stable
+NADIR_TOLERANCE_DEG = 45  # degrees — nadir lock engages below this angle
 # Hysteresis: once nadir is locked (angle < NADIR_TOLERANCE_DEG), the lock
 # is held until the angle exceeds NADIR_EXIT_DEG. This prevents rapid
 # capture-skip toggling when hovering near the threshold.
-NADIR_EXIT_DEG = 55             # degrees — nadir lock releases above this angle
+NADIR_EXIT_DEG = 55  # degrees — nadir lock releases above this angle
 
-# === QUALITY GATES ===
+# Quality Gates
 # BLUR_THRESHOLD MUST be calibrated against the real surface before demo day.
 # Procedure: take 10 sharp + 10 blurry photos of the actual surface, compute
 # cv2.Laplacian(gray, cv2.CV_64F).var() on all 20, then set threshold to the
 # midpoint between the lowest sharp variance and highest blurry variance.
-# Sand/regolith has low texture variance even when in focus — the default of 50
-# is a conservative guess and WILL need adjustment.
-BLUR_THRESHOLD = 20.0           # CALIBRATE THIS before demo. Default is a guess.
-EXPOSURE_MIN = 15               # Pixel mean below this → underexposed rejection
-EXPOSURE_MAX = 240              # Pixel mean above this → overexposed rejection
+# Sand/regolith has low texture variance even when in focus — the default is a
+# conservative guess and WILL need adjustment.
+BLUR_THRESHOLD = 20.0  # CALIBRATE THIS before demo. Default is a guess.
+EXPOSURE_MIN = 15  # Pixel mean below this → underexposed rejection
+EXPOSURE_MAX = 240  # Pixel mean above this → overexposed rejection
 QUALITY_WEIGHT_BLUR = 0.3
 QUALITY_WEIGHT_EXPOSURE = 0.25
 QUALITY_WEIGHT_MOTION = 0.2
 QUALITY_WEIGHT_NOVELTY = 0.25
 
-# === COVERAGE GRID ===
+# Coverage Grid
 GRID_ROWS = 8
 GRID_COLS = 8
 # Grid cell is set by operator terminal input ("cell R C"), NOT by elapsed time
@@ -71,11 +76,11 @@ GRID_COLS = 8
 # the operator updates it. This prevents desync from timing drift.
 DEFAULT_GRID_CELL = (0, 0)
 
-# === DOWNLINK ===
+# Downlink
 GROUND_STATION_IP = os.getenv("GROUND_STATION_IP", "192.168.1.225")
 DATA_PORT = _env_int("CUBESAT_DATA_PORT", 5000)
 COMMAND_PORT = _env_int("CUBESAT_COMMAND_PORT", 5001)
-THROTTLE_BYTES_PER_SEC = 1200   # 9600 bps / 8 = UHF flight link equivalent
+THROTTLE_BYTES_PER_SEC = 1200  # 9600 bps / 8 = UHF flight link equivalent
 ACK_TIMEOUT_SEC = 5
 MAX_RETRIES_PER_IMAGE = 3
 
@@ -88,12 +93,12 @@ MAX_RETRIES_PER_IMAGE = 3
 # Downlink resumes when a "retry_downlink" command arrives from GCS.
 MAX_GCS_CONNECT_FAILURES = 3
 
-# === PRIORITY TIERS ===
+# Priority Tiers
 # P2 images age to P3 after this many passes. With a 3-pass demo this fires
 # during pass 3's IDLE for pass 1's P2 images.
 P2_AGING_PASSES = 2
 
-# === STORAGE PATHS ===
+# Storage Paths
 DATA_ROOT = os.getenv("CUBESAT_DATA_ROOT", "/home/cubesat/cubesat_flight/data")
 IMAGE_DIR = os.path.join(DATA_ROOT, "images")
 TELEMETRY_DIR = os.path.join(DATA_ROOT, "telemetry")
@@ -102,44 +107,44 @@ PROCESSED_DIR = os.path.join(DATA_ROOT, "processed")
 QUEUE_FILE = os.path.join(DATA_ROOT, "queue.json")
 IMAGE_INDEX_FILE = os.path.join(DATA_ROOT, "image_index.json")
 RECOVERY_FILE = os.path.join(DATA_ROOT, "recovery.json")
-STORAGE_WARNING_PCT = 80        # Start cleanup of P3 images above this
-STORAGE_CRITICAL_PCT = 98       # Stop imaging above this
+STORAGE_WARNING_PCT = 80  # Start cleanup of P3 images above this
+STORAGE_CRITICAL_PCT = 98  # Stop imaging above this
 
-# === THERMAL ===
-CPU_TEMP_WARNING_C = 70         # Double capture interval above this
-CPU_TEMP_CRITICAL_C = 80        # Enter safe mode above this
+# Thermal
+CPU_TEMP_WARNING_C = 70  # Double capture interval above this
+CPU_TEMP_CRITICAL_C = 80  # Enter safe mode above this
 THERMAL_CHECK_INTERVAL_SEC = 10
 
-# === WATCHDOG ===
-WATCHDOG_TIMEOUT_SEC = 30       # No pet() within this window → restart
+# Watchdog
+WATCHDOG_TIMEOUT_SEC = 30  # No pet() within this window → restart
 WATCHDOG_CHECK_INTERVAL_SEC = 5
 
-# === MEASURED POWER (fill in from USB power meter readings) ===
+# Measured power (from USB power meter readings)
 MEASURED_IDLE_POWER_W = 0.0
 MEASURED_IMAGING_POWER_W = 0.0
 MEASURED_PROCESSING_POWER_W = 0.0
 MEASURED_DOWNLINK_POWER_W = 0.0
 
-# === MOSAIC GRID ===
-MOSAIC_GRID_CELL_PX = 80       # Coarse grid cell size in pixels (route planning)
-GRID_CELL_SIZE_CM = 1.0        # Physical size of one coarse grid cell in cm (demo scale)
+# Mosaic Grid
+MOSAIC_GRID_CELL_PX = 80  # Coarse grid cell size in pixels (route planning)
+GRID_CELL_SIZE_CM = 1.0  # Physical size of one coarse grid cell in cm (demo scale)
 
-# === PIXEL SEGMENTATION ===
-SEG_GRID_CELL_PX = 20          # Fine grid cell size in pixels (high-res route planning)
-SEG_SAFETY_DILATION_PX = 3     # Dilate hazard masks by this many pixels as safety margin
-SEG_MIN_CONTOUR_AREA_PCT = 5.0     # Min contour area as % of bbox to keep (noise filter)
-SEG_FALLBACK_ELLIPSE_PCT = 60.0    # If no good contour, fill this % ellipse within bbox
-SEG_ENABLED = True             # Feature flag — False reverts to coarse grid routing
-SEG_COST_MAP = {               # Label → traversal cost for A* routing
-    0: 1,                      # UNSURVEYED — assume passable
-    1: 1,                      # SAND — safe
-    2: 1,                      # PLAIN_SURFACE — safe
-    3: 15,                     # SHADOW — uncertain, high cost
-    4: 20,                     # CRATER — very risky
-    5: 999,                    # BOULDER — impassable
+# Pixel Segmentation
+SEG_GRID_CELL_PX = 20  # Fine grid cell size in pixels (high-res route planning)
+SEG_SAFETY_DILATION_PX = 3  # Dilate hazard masks by this many pixels as safety margin
+SEG_MIN_CONTOUR_AREA_PCT = 5.0  # Min contour area as % of bbox to keep (noise filter)
+SEG_FALLBACK_ELLIPSE_PCT = 60.0  # If no good contour, fill this % ellipse within bbox
+SEG_ENABLED = True  # Feature flag — False reverts to coarse grid routing
+SEG_COST_MAP = {  # Label → traversal cost for A* routing
+    0: 1,  # UNSURVEYED — assume passable
+    1: 1,  # SAND — safe
+    2: 1,  # PLAIN_SURFACE — safe
+    3: 15,  # SHADOW — uncertain, high cost
+    4: 20,  # CRATER — very risky
+    5: 999,  # BOULDER — impassable
 }
 
-# === DEMO SCALE ===
-DEMO_GSD_MM_PER_PX = 0.12      # Ground sample distance in demo (mm/px)
-FLIGHT_GSD_M_PER_PX = 29.5     # Ground sample distance in actual flight (m/px)
-SCALE_FACTOR = 250_000          # Demo to flight scale ratio
+# Demo Scale
+DEMO_GSD_MM_PER_PX = 0.12  # Ground sample distance in demo (mm/px)
+FLIGHT_GSD_M_PER_PX = 29.5  # Ground sample distance in actual flight (m/px)
+SCALE_FACTOR = 250_000  # Demo to flight scale ratio

@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-# main.py — MuraltZ CubeSat flight software state machine
-#
-# State machine: BOOT → [wait for start_pass] → IMAGING → IDLE → DOWNLINK
-#                           ↑______________wait for start_pass______________↑
-#
-# The loop does NOT auto-start the next pass. The operator must type "start_pass"
-# to begin each imaging cycle. This gives them time to physically reposition the
-# CubeSat over a new grid area and modify the surface for change detection.
-#
-# Operator terminal commands (typed into this process's stdin):
-#   start_pass           — begin next imaging pass
-#   end_pass             — stop current imaging pass early, proceed to IDLE
-#   cell R C             — set current grid cell (e.g. "cell 2 3")
-#   status               — print current system status
-#   eclipse_on           — switch camera to low-light mode (100ms exposure, gain 8)
-#   eclipse_off          — return camera to auto-exposure
-#   kill_link            — suspend downlink (simulates link loss)
-#   resume_link          — resume downlink attempts
-#   resume               — exit safe mode
-#   shutdown             — clean shutdown
+"""MuraltZ CubeSat flight software state machine.
+
+States: BOOT -> [wait for start_pass] -> IMAGING -> IDLE -> DOWNLINK -> back to waiting.
+
+The loop never auto-starts the next pass. The operator types "start_pass" to begin each
+imaging cycle, which leaves time to reposition the CubeSat over a new grid area and change
+the surface for change detection.
+
+Operator terminal commands (stdin):
+  start_pass     begin next imaging pass
+  end_pass       stop the current imaging pass early and go to IDLE
+  cell R C       set current grid cell (e.g. "cell 2 3")
+  status         print current system status
+  eclipse_on     low-light camera mode (100ms exposure, gain 8)
+  eclipse_off    return camera to auto-exposure
+  kill_link      suspend downlink (simulates link loss)
+  resume_link    resume downlink attempts
+  resume         exit safe mode
+  shutdown       clean shutdown
+"""
 
 import os
 import queue as _queue_mod
@@ -29,18 +29,15 @@ import time
 # Ensure the cubesat_flight package root is on the path when run directly.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from config import (
-    DEFAULT_GRID_CELL,
-    DOWNLINK_WINDOW_SEC,
-    IMAGE_WIDTH,
-    IMAGE_HEIGHT,
-    GROUND_STATION_IP,
-    PASS_CYCLE_DELAY_SEC,
-    THROTTLE_BYTES_PER_SEC,
-)
 from comms.command_listener import CommandListener
 from comms.transfer import Transfer, send_telemetry_now
-from utils.telemetry import build_telemetry, build_state_telemetry
+from config import (
+    DEFAULT_GRID_CELL,
+    GROUND_STATION_IP,
+    IMAGE_HEIGHT,
+    IMAGE_WIDTH,
+    PASS_CYCLE_DELAY_SEC,
+)
 from processing.coverage import CoverageTracker
 from processing.metadata import MetadataBuilder
 from processing.quality import QualityGate
@@ -53,24 +50,22 @@ from states.imaging import imaging_loop
 from states.safe_mode import safe_mode
 from storage.manager import StorageManager
 from utils.logger import log, set_state
+from utils.telemetry import build_state_telemetry, build_telemetry
 from utils.thermal import Thermal
 from utils.watchdog import Watchdog
 
-
-# ---------------------------------------------------------------------------
-# Stdin reader — daemon thread that feeds operator commands into a queue
-# so the main loop can pet the watchdog while waiting for start_pass.
-# ---------------------------------------------------------------------------
-
+# Operator stdin is read on a daemon thread so the main loop can keep petting the watchdog.
 _stdin_q: _queue_mod.Queue = _queue_mod.Queue()
 
 
-def _start_stdin_reader():
+def _start_stdin_reader() -> None:
+    """Start the daemon thread that feeds operator lines into the queue."""
+
     def _reader():
         while True:
             try:
                 line = sys.stdin.readline()
-                if not line:    # EOF
+                if not line:  # EOF
                     break
                 stripped = line.strip().lower()
                 if stripped:
@@ -82,33 +77,23 @@ def _start_stdin_reader():
     t.start()
 
 
-def _get_operator_input():
-    """Non-blocking: return next operator line or None."""
+def _get_operator_input() -> str | None:
+    """Return the next operator line without blocking, or None."""
     try:
         return _stdin_q.get_nowait()
     except _queue_mod.Empty:
         return None
 
 
-def _push_state_telemetry(state, imu, thermal, storage, pass_number):
-    """Send a lightweight state-transition telemetry packet to the GCS.
-    Non-fatal: silently continues if GCS is unreachable.
-    """
+def _push_state_telemetry(state: str, imu, thermal, storage, pass_number: int) -> None:
+    """Send a state-transition telemetry packet; non-fatal if the GCS is unreachable."""
     telem = build_state_telemetry(state, imu, thermal, storage, pass_number)
     ok = send_telemetry_now(telem)
     log(f"State telemetry sent: {state}" if ok else f"State telemetry not delivered ({state}) — GCS down")
 
 
-# ---------------------------------------------------------------------------
-# Helper: handle GCS commands that affect global state
-# ---------------------------------------------------------------------------
-
-def _handle_gcs_command(cmd, camera, transfer, state_ref):
-    """Apply a GCS command that is meaningful outside the imaging loop.
-
-    Args:
-        state_ref: dict with mutable flags: gcs_suspended, enter_safe
-    """
+def _handle_gcs_command(cmd: dict, camera, transfer, state_ref: dict) -> None:
+    """Apply a GCS command outside the imaging loop; state_ref holds the gcs_suspended/enter_safe flags."""
     name = cmd.get("cmd")
 
     if name == "retry_downlink":
@@ -126,7 +111,7 @@ def _handle_gcs_command(cmd, camera, transfer, state_ref):
     elif name == "adjust_exposure":
         exposure_us = cmd.get("exposure_us")
         if exposure_us:
-            camera._cam.set_controls({"AeEnable": False, "ExposureTime": int(exposure_us)})
+            camera.set_manual_exposure(exposure_us)
             log(f"Exposure set to {exposure_us} µs by GCS command")
 
     elif name == "status_request":
@@ -141,15 +126,12 @@ def _handle_gcs_command(cmd, camera, transfer, state_ref):
         log(f"Unknown GCS command: {name!r}", level="WARN")
 
 
-# ---------------------------------------------------------------------------
-# Wait-for-start-pass loop
-# ---------------------------------------------------------------------------
+def _wait_for_start_pass(
+    command_listener, watchdog, camera, transfer, thermal, storage, state_ref: dict, imu, pass_number: int
+) -> str:
+    """Wait for a start command, petting the watchdog and handling GCS/operator input.
 
-def _wait_for_start_pass(command_listener, watchdog, camera, transfer, thermal, storage, state_ref, imu, pass_number):
-    """Block until the operator types 'start_pass'.
-    Pets the watchdog and handles GCS/operator commands while waiting.
-
-    Returns True to begin pass, False to exit main loop (shutdown).
+    Returns "start", "shutdown" or "safe_mode".
     """
     set_state("WAITING")
     _push_state_telemetry("WAITING", imu, thermal, storage, pass_number)
@@ -167,7 +149,6 @@ def _wait_for_start_pass(command_listener, watchdog, camera, transfer, thermal, 
     while True:
         watchdog.pet()
 
-        # GCS commands while waiting.
         for cmd in command_listener.get_pending():
             name = cmd.get("cmd")
             if name == "start_pass":
@@ -176,7 +157,7 @@ def _wait_for_start_pass(command_listener, watchdog, camera, transfer, thermal, 
             elif name == "cell":
                 try:
                     state_ref["current_grid_cell"] = (int(cmd["row"]), int(cmd["col"]))
-                    log(f'Grid cell pre-set \u2192 {state_ref["current_grid_cell"]} (GCS)')
+                    log(f"Grid cell pre-set \u2192 {state_ref['current_grid_cell']} (GCS)")
                 except (KeyError, ValueError):
                     log("Malformed cell command from GCS", level="WARN")
             else:
@@ -225,7 +206,6 @@ def _wait_for_start_pass(command_listener, watchdog, camera, transfer, thermal, 
             log("'resume' typed during WAITING (already in normal mode)")
 
         elif op.startswith("cell"):
-            # Allow cell pre-setting before start_pass.
             parts = op.split()
             try:
                 state_ref["current_grid_cell"] = (int(parts[1]), int(parts[2]))
@@ -237,12 +217,8 @@ def _wait_for_start_pass(command_listener, watchdog, camera, transfer, thermal, 
             print(f"  Unknown command: {op!r}")
 
 
-# ---------------------------------------------------------------------------
-# Main
-# ---------------------------------------------------------------------------
-
-def main():
-    # === Infrastructure — start these first so logging is available everywhere ===
+def main() -> None:
+    """Boot the CubeSat and run the pass loop until shutdown."""
     thermal = Thermal()
     thermal.start_monitoring()
 
@@ -257,7 +233,6 @@ def main():
 
     _start_stdin_reader()
 
-    # === BOOT ===
     log("=== BOOT SELF-TEST ===")
     imu = IMU()
     camera = Camera(IMAGE_WIDTH, IMAGE_HEIGHT)
@@ -292,10 +267,12 @@ def main():
 
     # Start watchdog with a recovery callback that saves current pass number.
     def _recovery_cb():
-        storage.save_recovery_state({
-            "pass_number": pass_number,
-            "gcs_suspended": state_ref["gcs_suspended"],
-        })
+        storage.save_recovery_state(
+            {
+                "pass_number": pass_number,
+                "gcs_suspended": state_ref["gcs_suspended"],
+            }
+        )
 
     watchdog = Watchdog()
     watchdog.start(recovery_callback=_recovery_cb)
@@ -315,20 +292,12 @@ def main():
         f"GCS: {'reachable' if boot_result['gcs_reachable'] else 'UNREACHABLE — autonomous mode'}"
     )
 
-    # =========================================================================
-    # MAIN STATE MACHINE LOOP
-    # =========================================================================
-
     while True:
         watchdog.pet()
         state_ref["enter_safe"] = False
 
-        # -----------------------------------------------------------------
-        # Wait for operator "start_pass"
-        # -----------------------------------------------------------------
         action = _wait_for_start_pass(
-            command_listener, watchdog, camera, transfer, thermal, storage, state_ref,
-            imu=imu, pass_number=pass_number
+            command_listener, watchdog, camera, transfer, thermal, storage, state_ref, imu=imu, pass_number=pass_number
         )
 
         if action == "shutdown":
@@ -342,15 +311,11 @@ def main():
             set_state("SAFE_MODE")
             safe_mode(camera, command_listener, watchdog)
             state_ref["enter_safe"] = False
-            continue  # Back to waiting for start_pass
+            continue
 
-        # action == "start"
         pass_number += 1
-        nadir_locked = False    # Reset each pass
+        nadir_locked = False  # Reset each pass
 
-        # -----------------------------------------------------------------
-        # IMAGING
-        # -----------------------------------------------------------------
         set_state("IMAGING")
         log(f"=== PASS {pass_number} — IMAGING ===")
         _push_state_telemetry("IMAGING", imu, thermal, storage, pass_number)
@@ -361,11 +326,7 @@ def main():
             rejections = {"blur": 0, "underexposed": 0, "overexposed": 0, "motion_blur": 0}
             enter_safe = False
         else:
-            (images_this_pass,
-             rejections,
-             state_ref["current_grid_cell"],
-             nadir_locked,
-             enter_safe) = imaging_loop(
+            (images_this_pass, rejections, state_ref["current_grid_cell"], nadir_locked, enter_safe) = imaging_loop(
                 imu=imu,
                 camera=camera,
                 quality_gate=quality_gate,
@@ -385,10 +346,7 @@ def main():
         rejected_this_pass = sum(rejections.values())
         rejected_total += rejected_this_pass
 
-        log(
-            f"Imaging complete: {captured_this_pass} captured, "
-            f"{rejected_this_pass} rejected {rejections}"
-        )
+        log(f"Imaging complete: {captured_this_pass} captured, {rejected_this_pass} rejected {rejections}")
 
         if enter_safe:
             set_state("SAFE_MODE")
@@ -396,9 +354,6 @@ def main():
             state_ref["enter_safe"] = False
             continue
 
-        # -----------------------------------------------------------------
-        # IDLE
-        # -----------------------------------------------------------------
         set_state("IDLE")
         log(f"=== PASS {pass_number} — IDLE ===")
         _push_state_telemetry("IDLE", imu, thermal, storage, pass_number)
@@ -423,9 +378,6 @@ def main():
 
         watchdog.pet()
 
-        # -----------------------------------------------------------------
-        # DOWNLINK
-        # -----------------------------------------------------------------
         set_state("DOWNLINK")
         log(f"=== PASS {pass_number} — DOWNLINK ===")
         _push_state_telemetry("DOWNLINK", imu, thermal, storage, pass_number)
@@ -471,8 +423,7 @@ def main():
             if dl["gcs_suspended"]:
                 state_ref["gcs_suspended"] = True
                 log(
-                    "GCS unreachable after 3 attempts — suspending downlink. "
-                    "Images queuing locally.",
+                    "GCS unreachable after 3 attempts — suspending downlink. Images queuing locally.",
                     level="WARN",
                 )
 
@@ -480,15 +431,14 @@ def main():
         for cmd in command_listener.get_pending():
             _handle_gcs_command(cmd, camera, transfer, state_ref)
 
-        # -----------------------------------------------------------------
-        # End-of-pass housekeeping
-        # -----------------------------------------------------------------
         storage.save_queue(queue)
         storage.save_image_index()
-        storage.save_recovery_state({
-            "pass_number": pass_number,
-            "gcs_suspended": state_ref["gcs_suspended"],
-        })
+        storage.save_recovery_state(
+            {
+                "pass_number": pass_number,
+                "gcs_suspended": state_ref["gcs_suspended"],
+            }
+        )
 
         log(
             f"Pass {pass_number} complete: "
@@ -499,7 +449,6 @@ def main():
 
         watchdog.pet()
         time.sleep(PASS_CYCLE_DELAY_SEC)
-        # Loop back → wait for next "start_pass"
 
 
 if __name__ == "__main__":

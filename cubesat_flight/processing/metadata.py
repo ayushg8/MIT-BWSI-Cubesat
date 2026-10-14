@@ -1,76 +1,55 @@
-# processing/metadata.py — _meta.json sidecar generator
-#
-# MetadataBuilder assembles the full metadata dict for each captured image
-# and writes it to disk as a JSON sidecar file alongside the JPEG.
-#
-# Schema follows docs/ARCHITECTURE.md section 7.5.
-# Yaw is intentionally omitted — the LSM6DSO32 has no magnetometer.
+"""Builds and writes the _meta.json sidecar that accompanies each captured JPEG.
+
+Schema follows docs/ARCHITECTURE.md section 7.5. Yaw is omitted because the
+LSM6DSO32 has no magnetometer.
+"""
 
 import hashlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 
 class MetadataBuilder:
     def build(
         self,
-        filename,
-        pass_number,
-        image_sequence,
-        grid_cell,
-        orientation,
-        angular_rate,
-        nadir_locked,
-        nadir_angle_deg,
-        cam_meta,
-        jpeg_quality,
-        quality_details,
-        quality_score,
-        filepath,
-        angular_velocity=None,
-    ):
-        """Assemble the complete metadata dict for one captured image.
+        filename: str,
+        pass_number: int,
+        image_sequence: int,
+        grid_cell: tuple[int, int],
+        orientation: dict,
+        angular_rate: float,
+        nadir_locked: bool,
+        nadir_angle_deg: float,
+        cam_meta: dict,
+        jpeg_quality: int,
+        quality_details: dict,
+        quality_score: float,
+        filepath: str,
+        angular_velocity: list[float] | None = None,
+    ) -> dict:
+        """Assemble the metadata dict for one captured image.
 
-        Args:
-            filename:        Bare filename, e.g. "pass3_img07_20260315_144500.jpg"
-            pass_number:     Integer pass counter (1-indexed)
-            image_sequence:  Index of this image within the pass (0-indexed)
-            grid_cell:       (row, col) tuple — from operator-set current_grid_cell
-            orientation:     Dict from imu.get_orientation() — roll, pitch, accel_mag, angular_rate
-            angular_rate:    Float rad/s from imu.get_angular_rate() at capture time
-            nadir_locked:    Bool — was nadir lock active at capture time?
-            nadir_angle_deg: Float degrees — raw nadir angle at capture time
-            cam_meta:        Dict from camera.get_metadata() — real picamera2 metadata
-            jpeg_quality:    Int — actual JPEG quality used (70 or 60 if recompressed)
-            quality_details: Dict from QualityGate.score_image()
-            quality_score:   Float combined quality score (0.0–1.0)
-            filepath:        Full path to the JPEG — used to compute file_size and md5
-
-        Returns:
-            dict matching the _meta.json schema. Callers should store this dict
-            and later call save() or update it with priority_tier / downlink_status.
+        The caller later sets priority_tier and downlink_status, then calls save().
         """
         file_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
         md5 = self._md5(filepath) if os.path.exists(filepath) else ""
-        timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        timestamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-        # IMU block — field names match the GCS protocol contract (protocol.py).
-        # yaw_deg is None: LSM6DSO32 has no magnetometer.
+        # Field names match the GCS protocol contract (protocol.py).
         imu_block = {
             "roll_deg": orientation.get("roll"),
             "pitch_deg": orientation.get("pitch"),
-            "yaw_deg": None,              # No magnetometer — yaw unavailable
+            "yaw_deg": None,  # no magnetometer
             "angular_velocity": angular_velocity,  # [rx, ry, rz] deg/s or None
             "accel_magnitude": orientation.get("accel_mag"),
             "angular_rate": round(angular_rate, 4),
-            "stable": angular_rate < 1.0,   # mirrors is_stable() logic
+            "stable": angular_rate < 1.0,  # mirrors is_stable() logic
             "nadir_locked": nadir_locked,
             "nadir_angle_deg": round(nadir_angle_deg, 2),
         }
 
-        # Camera block — pulled from real picamera2 metadata.
-        # picamera2 key names: ExposureTime (µs), AnalogueGain, Lux
+        # picamera2 keys: ExposureTime (us), AnalogueGain, Lux
         cam_block = {
             "exposure_us": cam_meta.get("ExposureTime"),
             "analog_gain": cam_meta.get("AnalogueGain"),
@@ -79,7 +58,6 @@ class MetadataBuilder:
             "recompressed": jpeg_quality < 70,
         }
 
-        # Quality block — sourced directly from QualityGate.score_image() details.
         quality_block = {
             "blur_variance": quality_details.get("blur_variance"),
             "blur_score": quality_details.get("blur_score"),
@@ -97,34 +75,24 @@ class MetadataBuilder:
             "pass_number": pass_number,
             "image_sequence": image_sequence,
             "timestamp": timestamp,
-            "grid_cell": list(grid_cell),   # [row, col] — JSON-serialisable
+            "grid_cell": list(grid_cell),
             "imu": imu_block,
             "camera": cam_block,
             "quality": quality_block,
-            "priority_tier": None,          # Set by caller after novelty scoring
+            "priority_tier": None,
             "file_size_bytes": file_size,
             "md5": md5,
             "downlink_status": "pending",
         }
 
-    def save(self, meta_dict, filepath):
-        """Write the metadata dict to a JSON sidecar file.
-
-        Args:
-            meta_dict: Dict from build().
-            filepath:  Full path for the sidecar, e.g.:
-                       "/home/.../data/images/pass3_img07_20260315_144500_meta.json"
-        """
+    def save(self, meta_dict: dict, filepath: str) -> None:
+        """Write the metadata dict to a JSON sidecar at filepath."""
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "w") as f:
             json.dump(meta_dict, f, indent=2)
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
     @staticmethod
-    def _md5(filepath):
+    def _md5(filepath: str) -> str:
         """Compute MD5 hex digest of a file for transfer integrity checking."""
         h = hashlib.md5()
         with open(filepath, "rb") as f:

@@ -10,7 +10,6 @@ Usage:
 """
 
 import os
-import shutil
 import socket
 import sys
 import tempfile
@@ -28,7 +27,6 @@ from config import (
     GROUND_STATION_IP,
     IMAGE_HEIGHT,
     IMAGE_WIDTH,
-    JPEG_QUALITY,
     STORAGE_CRITICAL_PCT,
     STORAGE_WARNING_PCT,
 )
@@ -59,10 +57,12 @@ def section(title):
 # 1. IMU
 # ---------------------------------------------------------------------------
 
+
 def test_imu():
     section("1. IMU — LSM6DSO32 @ I2C 0x6A")
     try:
         from sensors.imu import IMU
+
         imu = IMU()
 
         ax, ay, az = imu.get_acceleration()
@@ -82,17 +82,17 @@ def test_imu():
 
         accel_ok = 8.0 < abs(az) < 11.0
         if not accel_ok:
-            _record("IMU accel Z (gravity check)", False,
-                    f"|az|={abs(az):.2f} m/s² — expected 8.0–11.0. Is CubeSat upright?")
+            _record(
+                "IMU accel Z (gravity check)",
+                False,
+                f"|az|={abs(az):.2f} m/s² — expected 8.0–11.0. Is CubeSat upright?",
+            )
         else:
-            _record("IMU accel Z (gravity check)", True,
-                    f"|az|={abs(az):.2f} m/s² ✓")
+            _record("IMU accel Z (gravity check)", True, f"|az|={abs(az):.2f} m/s² ✓")
 
-        _record("IMU stable at rest", rate < 1.0,
-                f"angular_rate={rate:.4f} rad/s (need < 1.0)")
+        _record("IMU stable at rest", rate < 1.0, f"angular_rate={rate:.4f} rad/s (need < 1.0)")
 
-        _record("IMU nadir angle", nadir < 45.0,
-                f"{nadir:.1f}° (need < 45° for capture gate)")
+        _record("IMU nadir angle", nadir < 45.0, f"{nadir:.1f}° (need < 45° for capture gate)")
 
         return imu
 
@@ -106,11 +106,13 @@ def test_imu():
 # 2. Camera
 # ---------------------------------------------------------------------------
 
+
 def test_camera():
     section("2. Camera — Pi Camera Module 3 (picamera2)")
     try:
-        from sensors.camera import Camera
         import cv2
+
+        from sensors.camera import Camera
 
         print(f"  Initialising camera ({IMAGE_WIDTH}×{IMAGE_HEIGHT}) …")
         cam = Camera(IMAGE_WIDTH, IMAGE_HEIGHT)
@@ -137,8 +139,9 @@ def test_camera():
         _record("Camera captures image", size > 0, f"{size:,} bytes")
         _record("Camera image > 10 KB", size > 10_000, f"{size / 1024:.1f} KB")
         _record("Camera image decodable by OpenCV", decodable)
-        _record("Camera metadata present", bool(meta.get("ExposureTime")),
-                f"ExposureTime={meta.get('ExposureTime')} µs")
+        _record(
+            "Camera metadata present", bool(meta.get("ExposureTime")), f"ExposureTime={meta.get('ExposureTime')} µs"
+        )
 
         try:
             os.remove(test_path)
@@ -157,6 +160,7 @@ def test_camera():
 # ---------------------------------------------------------------------------
 # 3. CPU Temperature
 # ---------------------------------------------------------------------------
+
 
 def test_thermal():
     section("3. CPU Temperature — /sys/class/thermal/thermal_zone0/temp")
@@ -178,8 +182,7 @@ def test_thermal():
         _record("CPU temp readable", readable, f"{temp:.1f}°C")
 
         if thermal.is_critical():
-            _record("CPU temp within safe range", False,
-                    f"{temp:.1f}°C ≥ {CPU_TEMP_CRITICAL_C}°C CRITICAL")
+            _record("CPU temp within safe range", False, f"{temp:.1f}°C ≥ {CPU_TEMP_CRITICAL_C}°C CRITICAL")
         elif thermal.is_warning():
             print(f"{_WARN}  CPU temp elevated ({temp:.1f}°C) — consider cooling before long run")
             _record("CPU temp within safe range", True, f"{temp:.1f}°C (warning, not critical)")
@@ -198,6 +201,7 @@ def test_thermal():
 # 4. Ground Station Ping
 # ---------------------------------------------------------------------------
 
+
 def test_gcs():
     section(f"4. Ground Station — {GROUND_STATION_IP}:{DATA_PORT}")
     try:
@@ -208,10 +212,12 @@ def test_gcs():
             _record("GCS reachable", True, f"connected in {rtt:.0f} ms")
             return True
     except OSError as exc:
-        _record("GCS reachable", False,
-                f"connection refused/timeout — {exc}. "
-                "Start GCS server, or this is expected in autonomous mode.")
-        print(f"  NOTE: GCS unreachable is non-fatal. main.py will run in autonomous mode.")
+        _record(
+            "GCS reachable",
+            False,
+            f"connection refused/timeout — {exc}. Start GCS server, or this is expected in autonomous mode.",
+        )
+        print("  NOTE: GCS unreachable is non-fatal. main.py will run in autonomous mode.")
         return False
 
 
@@ -219,11 +225,12 @@ def test_gcs():
 # 5. Storage / Disk Capacity
 # ---------------------------------------------------------------------------
 
+
 def test_storage():
     section("5. Storage — Disk Capacity")
     try:
-        from storage.manager import StorageManager
         from config import IMAGE_DIR
+        from storage.manager import StorageManager
 
         os.makedirs(IMAGE_DIR, exist_ok=True)
         storage = StorageManager()
@@ -239,12 +246,14 @@ def test_storage():
         _record("Storage readable", True, f"{cap['used_pct']:.1f}% used")
 
         if cap["used_pct"] > STORAGE_CRITICAL_PCT:
-            _record("Storage below critical", False,
-                    f"{cap['used_pct']:.1f}% ≥ {STORAGE_CRITICAL_PCT}% — free space immediately")
+            _record(
+                "Storage below critical",
+                False,
+                f"{cap['used_pct']:.1f}% ≥ {STORAGE_CRITICAL_PCT}% — free space immediately",
+            )
         elif cap["used_pct"] > STORAGE_WARNING_PCT:
             print(f"{_WARN}  Storage above warning ({cap['used_pct']:.1f}%) — cleanup P3 images soon")
-            _record("Storage below warning", False,
-                    f"{cap['used_pct']:.1f}% — imaging will still work")
+            _record("Storage below warning", False, f"{cap['used_pct']:.1f}% — imaging will still work")
         else:
             _record("Storage below warning", True, f"{cap['free_mb']:.0f} MB free ✓")
 
@@ -256,6 +265,7 @@ def test_storage():
 # ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
+
 
 def print_summary():
     section("SUMMARY")
@@ -270,7 +280,7 @@ def print_summary():
     print(f"\n  {passed}/{total} checks passed")
 
     if failed:
-        print(f"\n  FAILED checks:")
+        print("\n  FAILED checks:")
         for name in failed:
             print(f"    • {name}")
         print()

@@ -1,12 +1,12 @@
-# sensors/camera.py — Pi Camera Module 3 wrapper via picamera2
-#
-# Hardware: Pi Camera Module 3 (IMX708), connected via CSI ribbon.
-# Import: from picamera2 import Picamera2. NOT libcamera directly.
-# Camera starts in AUTO-EXPOSURE mode and stays there by default.
-# Manual exposure is only set via set_low_light_mode() or adjust_exposure command.
+"""Pi Camera Module 3 (IMX708) wrapper over picamera2, connected via CSI ribbon.
+
+Uses picamera2 (Picamera2), not libcamera directly. The camera starts in
+auto-exposure and stays there unless set_low_light_mode() switches to manual.
+"""
 
 import os
 import time
+
 import cv2
 from picamera2 import Picamera2
 
@@ -15,25 +15,20 @@ from utils.logger import log
 
 
 class Camera:
-    def __init__(self, width, height):
-        """Initialise camera in auto-exposure still-capture mode.
-        Blocks for 2 seconds while the sensor warms up and AGC settles."""
+    def __init__(self, width: int, height: int) -> None:
+        """Start the camera in auto-exposure still mode; blocks 2 s while AGC and AWB settle."""
         self._width = width
         self._height = height
         self._last_metadata = {}
 
         self._cam = Picamera2()
-        config = self._cam.create_still_configuration(
-            main={"size": (width, height), "format": "RGB888"}
-        )
+        config = self._cam.create_still_configuration(main={"size": (width, height), "format": "RGB888"})
         self._cam.configure(config)
-        # Auto-exposure is the default — no controls set here.
         self._cam.start()
-        time.sleep(2)  # Allow AGC and AWB to settle before first capture
+        time.sleep(2)
 
-    def capture(self, filepath):
-        """Capture a JPEG at JPEG_QUALITY and save to filepath.
-        Stores the real camera metadata (exposure, gain, lux) for get_metadata()."""
+    def capture(self, filepath: str) -> str:
+        """Capture a JPEG at JPEG_QUALITY to filepath and keep the camera metadata for get_metadata()."""
         request = self._cam.capture_request()
         self._last_metadata = request.get_metadata()
         frame = request.make_array("main")
@@ -41,10 +36,11 @@ class Camera:
         cv2.imwrite(filepath, frame[:, :, ::-1], [cv2.IMWRITE_JPEG_QUALITY, JPEG_QUALITY])
         return filepath
 
-    def capture_with_recompress(self, filepath, max_bytes):
-        """Capture at JPEG_QUALITY. If the file exceeds max_bytes, re-encode
-        the saved JPEG at (JPEG_QUALITY - 10) in place using OpenCV and log it.
-        Returns the final JPEG quality used."""
+    def capture_with_recompress(self, filepath: str, max_bytes: int) -> int:
+        """Capture at JPEG_QUALITY; if the file exceeds max_bytes, re-encode it in place at JPEG_QUALITY - 10.
+
+        Returns the JPEG quality used.
+        """
         request = self._cam.capture_request()
         self._last_metadata = request.get_metadata()
         frame = request.make_array("main")
@@ -55,7 +51,6 @@ class Camera:
         if file_size <= max_bytes:
             return JPEG_QUALITY
 
-        # Re-encode the on-disk JPEG at lower quality — no second capture needed.
         fallback_quality = JPEG_QUALITY - 10
         img = cv2.imread(filepath)
         cv2.imwrite(filepath, img, [cv2.IMWRITE_JPEG_QUALITY, fallback_quality])
@@ -64,32 +59,37 @@ class Camera:
             f"Recompressed {os.path.basename(filepath)} "
             f"Q{JPEG_QUALITY}→Q{fallback_quality} "
             f"({file_size // 1024}KB→{new_size // 1024}KB)",
-            level="INFO"
+            level="INFO",
         )
         return fallback_quality
 
-    def set_low_light_mode(self):
-        """Switch to fixed manual exposure for eclipse / low-light demo segment.
-        ExposureTime 100 ms (100,000 µs), AnalogueGain 8.0."""
-        self._cam.set_controls({
-            "AeEnable": False,
-            "ExposureTime": 100_000,    # µs
-            "AnalogueGain": 8.0,
-        })
+    def set_low_light_mode(self) -> None:
+        """Fixed manual exposure for the eclipse / low-light segment: 100 ms, gain 8.0."""
+        self._cam.set_controls(
+            {
+                "AeEnable": False,
+                "ExposureTime": 100_000,  # us
+                "AnalogueGain": 8.0,
+            }
+        )
 
-    def set_normal_mode(self):
-        """Return to auto-exposure (AEC/AGC). Reverts any manual exposure set."""
-        self._cam.set_controls({
-            "AeEnable": True,
-        })
+    def set_manual_exposure(self, exposure_us: int) -> None:
+        """Disable auto-exposure and hold the given exposure time in microseconds."""
+        self._cam.set_controls({"AeEnable": False, "ExposureTime": int(exposure_us)})
 
-    def get_metadata(self):
-        """Return the metadata dict from the most recent capture.
-        Includes real sensor values: ExposureTime (µs), AnalogueGain, Lux, etc.
-        Returns an empty dict if no capture has been taken yet."""
+    def set_normal_mode(self) -> None:
+        """Return to auto-exposure, reverting any manual exposure."""
+        self._cam.set_controls(
+            {
+                "AeEnable": True,
+            }
+        )
+
+    def get_metadata(self) -> dict:
+        """Return picamera2 metadata (ExposureTime, AnalogueGain, Lux) from the last capture; empty before the first."""
         return self._last_metadata
 
-    def close(self):
-        """Stop the camera cleanly. Call this before process exit."""
+    def close(self) -> None:
+        """Stop and release the camera; call before process exit."""
         self._cam.stop()
         self._cam.close()

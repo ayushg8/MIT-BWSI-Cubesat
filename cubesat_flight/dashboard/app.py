@@ -1,17 +1,16 @@
-# dashboard/app.py — Lightweight Flask dashboard for mosaic + segmentation
-#
-# Endpoints:
-#   GET /                        — Dashboard HTML page
-#   GET /api/cost_grid           — JSON cost grid data (coarse + fine)
-#   GET /api/segmentation_overlay — PNG segmentation overlay (BGRA)
-#   GET /api/route               — Plan a route (query params: x0,y0,x1,y1)
-#   GET /api/status              — Pipeline status summary
+"""Lightweight Flask dashboard for the mosaic and segmentation.
+
+Endpoints:
+    GET /                         dashboard HTML page
+    GET /api/cost_grid            JSON cost grid data (coarse + fine)
+    GET /api/segmentation_overlay PNG segmentation overlay (BGRA)
+    GET /api/route                plan a route (query params x0, y0, x1, y1)
+    GET /api/status               pipeline status summary
+"""
 
 import io
-import json
 
 import cv2
-import numpy as np
 
 try:
     from flask import Flask, Response, jsonify, request, send_file
@@ -19,17 +18,11 @@ except ImportError:
     Flask = None
 
 import config
+from processing.pipeline import ProcessingPipeline
 
 
-def create_app(pipeline):
-    """Create and configure the Flask dashboard app.
-
-    Args:
-        pipeline: ProcessingPipeline instance (shared with flight software).
-
-    Returns:
-        Flask app instance, or None if Flask is not installed.
-    """
+def create_app(pipeline: ProcessingPipeline) -> "Flask | None":
+    """Build the dashboard app around the shared ProcessingPipeline; returns None if Flask is not installed."""
     if Flask is None:
         return None
 
@@ -94,7 +87,6 @@ def create_app(pipeline):
 
         route = pipeline.plan_route((x0, y0), (x1, y1))
 
-        # Convert numpy types for JSON serialization
         serializable = {
             "success": route["success"],
             "distance_cm": route["distance_cm"],
@@ -110,20 +102,21 @@ def create_app(pipeline):
         mg = pipeline.mosaic_grid
         last = pipeline.last_route
 
-        return jsonify({
-            "seg_enabled": config.SEG_ENABLED,
-            "mosaic_w": mg.mosaic_w,
-            "mosaic_h": mg.mosaic_h,
-            "fine_grid_size": [mg.fine_rows, mg.fine_cols] if config.SEG_ENABLED else None,
-            "coarse_grid_size": [mg.coarse_rows, mg.coarse_cols],
-            "last_route_success": last["success"] if last else None,
-            "last_route_distance_cm": last["distance_cm"] if last else None,
-        })
+        return jsonify(
+            {
+                "seg_enabled": config.SEG_ENABLED,
+                "mosaic_w": mg.mosaic_w,
+                "mosaic_h": mg.mosaic_h,
+                "fine_grid_size": [mg.fine_rows, mg.fine_cols] if config.SEG_ENABLED else None,
+                "coarse_grid_size": [mg.coarse_rows, mg.coarse_cols],
+                "last_route_success": last["success"] if last else None,
+                "last_route_distance_cm": last["distance_cm"] if last else None,
+            }
+        )
 
     return app
 
 
-# Minimal embedded dashboard HTML
 _DASHBOARD_HTML = """\
 <!DOCTYPE html>
 <html>

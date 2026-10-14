@@ -1,16 +1,16 @@
-# states/downlink.py — Throttled TCP downlink to ground station
-#
-# Sends a telemetry packet first, then pops images from the priority queue
-# highest-priority first. Transfer is throttled to THROTTLE_BYTES_PER_SEC
-# (1200 B/s) to simulate the UHF flight link — a 28 KB image takes ~23 seconds.
-#
-# Data budget: THROTTLE_BYTES_PER_SEC × DOWNLINK_WINDOW_SEC = 72,000 bytes.
-# At ~28 KB per image, roughly 2 images per window.
-#
-# Error handling:
-#   NACK      → retry up to MAX_RETRIES_PER_IMAGE, then mark corrupt and skip
-#   Socket error → log, stop downlink for this pass; image stays in queue
-#   GCSUnreachableError → raise to caller so gcs_suspended flag can be set
+"""Throttled TCP downlink to the ground station.
+
+Sends a telemetry packet first, then pops images from the priority queue,
+highest priority first. Transfer is throttled to THROTTLE_BYTES_PER_SEC
+(1200 B/s) to simulate the UHF flight link, so a 28 KB image takes about 23 s.
+Data budget per window is THROTTLE_BYTES_PER_SEC * DOWNLINK_WINDOW_SEC = 72,000
+bytes, roughly 2 images.
+
+Error handling:
+    NACK                 retry up to MAX_RETRIES_PER_IMAGE, then mark corrupt and skip
+    socket error         log and stop this window; the image stays queued
+    GCSUnreachableError  reported to the caller via gcs_suspended
+"""
 
 import os
 import time
@@ -25,24 +25,13 @@ from config import (
 from utils.logger import log
 
 
-def downlink(transfer, storage, queue, telemetry_dict, watchdog):
-    """Run one downlink window.
+def downlink(transfer, storage, queue: list[dict], telemetry_dict: dict, watchdog) -> dict:
+    """Run one downlink window, petting the watchdog between image sends.
 
-    Args:
-        transfer:       Transfer instance (TCP client)
-        storage:        StorageManager instance
-        queue:          Priority-sorted list of image metadata dicts (modified in place)
-        telemetry_dict: Pre-built telemetry dict from build_telemetry()
-        watchdog:       Watchdog instance — petted between image sends
-
-    Returns:
-        dict with keys:
-            images_sent      int   — number of images ACKed this window
-            bytes_sent       int   — total bytes sent (telemetry + images)
-            remaining_queue  list  — queue items not yet sent
-            gcs_suspended    bool  — True if GCSUnreachableError was raised
+    queue is the priority-sorted list of image metadata dicts. Returns images_sent,
+    bytes_sent (telemetry plus images), remaining_queue and gcs_suspended.
     """
-    data_budget = THROTTLE_BYTES_PER_SEC * DOWNLINK_WINDOW_SEC  # 72,000 bytes
+    data_budget = THROTTLE_BYTES_PER_SEC * DOWNLINK_WINDOW_SEC
     bytes_sent = 0
     images_sent = 0
 
@@ -65,10 +54,8 @@ def downlink(transfer, storage, queue, telemetry_dict, watchdog):
             "gcs_suspended": False,
         }
 
-    # Reset per-window bytes counter on the Transfer object.
     transfer.bytes_sent = 0
 
-    # --- Send telemetry first ---
     log("Downlink: sending telemetry packet")
     telem_ok = transfer.send_telemetry(telemetry_dict)
     if telem_ok:
@@ -77,12 +64,10 @@ def downlink(transfer, storage, queue, telemetry_dict, watchdog):
     else:
         log(f"Downlink: telemetry send failed ({transfer.last_error})", level="WARN")
 
-    # Reset for image counting.
     transfer.bytes_sent = 0
     window_start = time.monotonic()
 
-    # --- Send images from queue ---
-    sent_indices = []   # indices into queue that were successfully sent
+    sent_indices = []  # queue indices that are done (sent or dropped)
 
     i = 0
     while i < len(queue):
@@ -97,8 +82,7 @@ def downlink(transfer, storage, queue, telemetry_dict, watchdog):
 
         if bytes_sent + file_size > data_budget:
             log(
-                f"Downlink: budget exhausted ({bytes_sent}/{data_budget} bytes). "
-                f"{len(queue) - i} images remain queued."
+                f"Downlink: budget exhausted ({bytes_sent}/{data_budget} bytes). {len(queue) - i} images remain queued."
             )
             break
 
@@ -106,7 +90,7 @@ def downlink(transfer, storage, queue, telemetry_dict, watchdog):
         if not os.path.exists(filepath):
             log(f"Downlink: image file missing on disk: {item['filename']}", level="WARN")
             storage.mark_failed(item["filename"])
-            sent_indices.append(i)  # Remove from queue (not retryable)
+            sent_indices.append(i)
             i += 1
             continue
 
@@ -124,26 +108,19 @@ def downlink(transfer, storage, queue, telemetry_dict, watchdog):
             item["retry_count"] = item.get("retry_count", 0) + 1
             if item["retry_count"] >= MAX_RETRIES_PER_IMAGE:
                 log(
-                    f"  CORRUPT {item['filename']} — "
-                    f"{MAX_RETRIES_PER_IMAGE} NACKs, marking failed and skipping",
+                    f"  CORRUPT {item['filename']} — {MAX_RETRIES_PER_IMAGE} NACKs, marking failed and skipping",
                     level="WARN",
                 )
                 storage.mark_failed(item["filename"])
-                sent_indices.append(i)  # Remove corrupt image from queue
+                sent_indices.append(i)
                 i += 1
             else:
-                log(
-                    f"  NACK {item['filename']} — "
-                    f"retry {item['retry_count']}/{MAX_RETRIES_PER_IMAGE}"
-                )
-                # Leave i unchanged — retry same item next iteration.
+                log(f"  NACK {item['filename']} — retry {item['retry_count']}/{MAX_RETRIES_PER_IMAGE}")
 
         else:
-            # Socket error, timeout, or unexpected byte — stop downlink.
             log(f"  LINK FAIL ({transfer.last_error}) — stopping downlink", level="WARN")
             break
 
-    # Build remaining queue by excluding items that were sent or failed.
     sent_set = set(sent_indices)
     remaining = [item for j, item in enumerate(queue) if j not in sent_set]
 
@@ -152,10 +129,7 @@ def downlink(transfer, storage, queue, telemetry_dict, watchdog):
     except OSError:
         pass
 
-    log(
-        f"Downlink: {images_sent} sent, {bytes_sent} bytes, "
-        f"{len(remaining)} images still queued"
-    )
+    log(f"Downlink: {images_sent} sent, {bytes_sent} bytes, {len(remaining)} images still queued")
 
     return {
         "images_sent": images_sent,

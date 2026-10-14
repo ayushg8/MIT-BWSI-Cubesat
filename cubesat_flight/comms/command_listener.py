@@ -1,12 +1,10 @@
-# comms/command_listener.py — Background daemon thread for GCS → CubeSat commands
-#
-# Listens on COMMAND_PORT for JSON commands from the ground station.
-# Commands are placed in a thread-safe queue; the main state machine drains
-# them at safe points via get_pending().
-#
-# Each connection from GCS can send multiple commands (one JSON object per line).
-# The listener accepts new connections automatically after one closes, so the
-# GCS can reconnect between passes without restarting the CubeSat software.
+"""Background daemon thread for GCS -> CubeSat commands.
+
+Listens on COMMAND_PORT for newline-delimited JSON commands. Commands go into a
+thread-safe queue that the state machine drains at safe points via get_pending().
+The listener accepts a new connection after each one closes, so the GCS can reconnect
+between passes without restarting the CubeSat software.
+"""
 
 import json
 import queue
@@ -16,8 +14,7 @@ import threading
 from config import COMMAND_PORT
 from protocol import ACK, NACK
 
-
-# Valid command names — used for validation before queuing.
+# Commands accepted into the queue; anything else is NACKed.
 _KNOWN_COMMANDS = {
     "retransmit",
     "priority_cell",
@@ -34,24 +31,19 @@ _KNOWN_COMMANDS = {
 
 
 class CommandListener:
-    def __init__(self):
+    """Receives and queues ground-station commands."""
+
+    def __init__(self) -> None:
         self._queue = queue.Queue()
         self._thread = None
 
-    def start(self):
-        """Start the background daemon thread. Safe to call once at boot."""
-        self._thread = threading.Thread(
-            target=self._accept_loop, daemon=True, name="CommandListener"
-        )
+    def start(self) -> None:
+        """Start the background daemon thread; call once at boot."""
+        self._thread = threading.Thread(target=self._accept_loop, daemon=True, name="CommandListener")
         self._thread.start()
 
-    def get_pending(self):
-        """Drain and return all commands received since the last call.
-
-        Returns:
-            list of dicts — each dict is one parsed GCS command.
-            Returns empty list if no commands have arrived.
-        """
+    def get_pending(self) -> list[dict]:
+        """Drain and return all commands received since the last call."""
         commands = []
         while True:
             try:
@@ -60,12 +52,8 @@ class CommandListener:
                 break
         return commands
 
-    # ------------------------------------------------------------------
-    # Background thread
-    # ------------------------------------------------------------------
-
-    def _accept_loop(self):
-        """Main loop: bind server socket, accept connections one at a time."""
+    def _accept_loop(self) -> None:
+        """Bind the server socket and serve connections one at a time."""
         server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server.bind(("", COMMAND_PORT))
@@ -73,25 +61,22 @@ class CommandListener:
 
         while True:
             try:
-                conn, addr = server.accept()
+                conn, _addr = server.accept()
                 self._handle_connection(conn)
             except OSError:
-                # Server socket closed — daemon thread will exit naturally.
+                # Server socket closed; the daemon thread exits.
                 break
 
-    def _handle_connection(self, conn):
-        """Read newline-delimited JSON commands from one GCS connection.
-        Runs until the connection is closed by GCS or a socket error occurs.
-        """
+    def _handle_connection(self, conn: socket.socket) -> None:
+        """Read newline-delimited JSON commands until the GCS closes or the socket errors."""
         buf = b""
         try:
             conn.settimeout(5.0)
             while True:
                 data = conn.recv(4096)
                 if not data:
-                    break                   # GCS closed the connection cleanly
+                    break  # GCS closed the connection cleanly
                 buf += data
-                # Process all complete lines in the buffer.
                 while b"\n" in buf:
                     line, buf = buf.split(b"\n", 1)
                     line = line.strip()
@@ -103,15 +88,15 @@ class CommandListener:
                     except OSError:
                         pass
         except OSError:
-            pass                            # Socket error — connection dropped
+            pass  # Socket error — connection dropped
         finally:
             try:
                 conn.close()
             except OSError:
                 pass
 
-    def _parse_and_queue(self, line_bytes):
-        """Parse one JSON line and put it in the command queue if valid."""
+    def _parse_and_queue(self, line_bytes: bytes) -> bool:
+        """Queue one JSON command line; return False if it is malformed or unknown."""
         try:
             cmd = json.loads(line_bytes.decode("utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError):
